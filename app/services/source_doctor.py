@@ -2,6 +2,7 @@ import os
 import re
 import shutil
 import zipfile
+import logging
 from datetime import datetime
 from typing import Dict, Any, List, Optional
 
@@ -173,8 +174,8 @@ class SourceDoctor:
                         "file": rel_name
                     })
 
-            except Exception:
-                pass
+            except Exception as e:
+                logging.debug(f"Could not read master page {full_path}: {e}")
 
     def auto_fix(self) -> Dict[str, Any]:
         self.fixes = []

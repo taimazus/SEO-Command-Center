@@ -1,5 +1,6 @@
 import os
 import ftplib
+import logging
 from typing import Dict, Any, List, Optional
 import io
 
@@ -80,12 +81,12 @@ class FTPDeployer:
                         backup_name = f"{filename}.bak"
                         try:
                             ftp.delete(backup_name)
-                        except Exception:
-                            pass
+                        except Exception as del_err:
+                            logging.debug(f"Previous backup file {backup_name} not present or could not be removed: {del_err}")
                         ftp.rename(filename, backup_name)
                         backup_created = True
-                except Exception:
-                    pass
+                except Exception as bak_err:
+                    logging.warning(f"Could not create remote backup file for {filename}: {bak_err}")
 
             # Upload local file
             with open(local_path, "rb") as f:

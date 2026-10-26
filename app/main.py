@@ -429,8 +429,9 @@ def health_audit_page(request: Request, site_id: Optional[int] = None):
         else:
             try:
                 audit = audit_site_health(active_id)
-            except Exception:
-                pass
+            except Exception as e:
+                import logging
+                logging.warning(f"Could not auto-run health audit for site {active_id}: {e}")
     conn.close()
 
     return templates.TemplateResponse(

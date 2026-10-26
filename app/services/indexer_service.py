@@ -1,5 +1,6 @@
 import json
 import requests
+import logging
 from datetime import datetime
 from bs4 import BeautifulSoup
 from typing import List, Dict, Any
@@ -17,8 +18,8 @@ def fetch_sitemap_urls(sitemap_url: str, max_urls: int = 50) -> List[str]:
                 url_text = loc.get_text(strip=True)
                 if url_text and url_text.startswith("http"):
                     urls.append(url_text)
-    except Exception:
-        pass
+    except Exception as e:
+        logging.warning(f"Error fetching sitemap {sitemap_url}: {e}")
     return urls
 
 def submit_to_indexnow(host: str, url_list: List[str], key: str = "seo_command_center_key") -> Dict[str, Any]:

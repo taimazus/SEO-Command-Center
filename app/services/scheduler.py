@@ -1,5 +1,6 @@
 import time
 import threading
+import logging
 from datetime import datetime
 from typing import Dict, Any, Optional
 from app.database import get_connection
@@ -52,8 +53,8 @@ def run_autopilot_cycle(site_id: Optional[int] = None) -> Dict[str, Any]:
                     )
                     alerts_count += 1
             total_tasks += len(new_ranks)
-        except Exception:
-            pass
+        except Exception as e:
+            logging.error(f"Error checking ranks for site {s_id}: {e}")
 
         # 2. Health & 301 Audit
         try:
@@ -66,8 +67,8 @@ def run_autopilot_cycle(site_id: Optional[int] = None) -> Dict[str, Any]:
                     f"امتیاز سلامت فنی به {audit['score']} نزول کرد. سرور یا ریدایرکت ۳۰۱ نیاز به بررسی دارد."
                 )
                 alerts_count += 1
-        except Exception:
-            pass
+        except Exception as e:
+            logging.error(f"Error auditing health for site {s_id}: {e}")
 
         # 3. Sitemap & IndexNow
         try:
@@ -76,16 +77,16 @@ def run_autopilot_cycle(site_id: Optional[int] = None) -> Dict[str, Any]:
             if urls:
                 submit_urls_for_indexing(s_id, urls)
                 total_tasks += len(urls)
-        except Exception:
-            pass
+        except Exception as e:
+            logging.error(f"Error indexing sitemap for site {s_id}: {e}")
 
         # 4. SEO Copilot
         try:
             copilot = SEOCopilot(s_id)
             copilot.generate_full_analysis()
             total_tasks += 1
-        except Exception:
-            pass
+        except Exception as e:
+            logging.error(f"Error running SEO copilot for site {s_id}: {e}")
 
     summary = f"چرخه خودکار سئو با موفقیت اجرا شد. {total_tasks} تسک پردازش و {alerts_count} هشدار ثبت گردید."
     conn.execute("""
@@ -109,8 +110,8 @@ def _scheduler_loop(interval_seconds: int = 43200): # 12 hours default
     while not _stop_event.is_set():
         try:
             run_autopilot_cycle()
-        except Exception:
-            pass
+        except Exception as e:
+            logging.error(f"Autopilot background loop error: {e}")
         _stop_event.wait(interval_seconds)
     _is_running = False
 
