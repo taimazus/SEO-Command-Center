@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+
+{% block title %}{{ site.name }} | SEO Command Center{% endblock %}
+{% block page_heading %}{{ site.name }} ({{ site.domain }}){% endblock %}
+
+{% block content %}
+<div class="row g-4 mb-4">
+    <!-- Quick Actions Bar -->
+    <div class="col-12">
+        <div class="card card-custom p-3 d-flex flex-row justify-content-between align-items-center flex-wrap gap-2">
+            <div>
+                <span class="badge bg-primary me-2">{{ site.city }}</span>
+                <span class="text-muted small">دسته‌بندی: {{ site.category }}</span>
+            </div>
+            <div class="d-flex gap-2">
+                <a href="/rank-tracker?site_id={{ site.id }}" class="btn btn-sm btn-outline-success">
+                    <i class="fas fa-chart-line me-1"></i>پایش زنده رتبه‌ها
+                </a>
+                <a href="/content-generator?site_id={{ site.id }}" class="btn btn-sm btn-outline-info">
+                    <i class="fas fa-wand-magic-sparkles me-1"></i>تولید مقاله اختصاصی
+                </a>
+                <a href="/health-audit?site_id={{ site.id }}" class="btn btn-sm btn-outline-warning">
+                    <i class="fas fa-shield-heart me-1"></i>تست فنی سلامت
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Keyword to this site -->
+    <div class="col-lg-4">
+        <div class="card card-custom p-4">
+            <h2 class="h5 fw-bold mb-3"><i class="fas fa-key text-primary me-2"></i>افزودن کلمه کلیدی</h2>
+            <form action="/api/sites/{{ site.id }}/keywords" method="POST">
+                <div class="mb-3">
+                    <label class="form-label small fw-bold">کلمه کلیدی هدف *</label>
+                    <input type="text" name="keyword" class="form-control" placeholder="مثال: تعمیر تلویزیون در تبریز" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label small fw-bold">آدرس صفحه فرود (Target URL)</label>
+                    <input type="url" name="target_url" class="form-control" placeholder="https://{{ site.domain }}/Services.aspx?id=11" value="https://{{ site.domain }}/">
+                </div>
+                <button type="submit" class="btn btn-primary-custom w-100">
+                    <i class="fas fa-plus me-1"></i>افزودن به لیست رصد
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Keywords List -->
+    <div class="col-lg-8">
+        <div class="card card-custom p-4">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h2 class="h5 fw-bold mb-0">کلمات کلیدی پایش شده ({{ keywords|length }} کلمه)</h2>
+                <form action="/api/sites/{{ site.id }}/check-ranks" method="POST">
+                    <button type="submit" class="btn btn-sm btn-outline-success">
+                        <i class="fas fa-rotate me-1"></i>استعلام زنده رتبه همه کلمات
+                    </button>
+                </form>
+            </div>
+
+            <div class="table-responsive">
+                <table class="table table-dark-custom align-middle">
+                    <thead>
+                        <tr>
+                            <th>کلمه کلیدی</th>
+                            <th>رتبه فعلی در سرپ</th>
+                            <th>بهترین رتبه</th>
+                            <th>تغییرات</th>
+                            <th>عملیات</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for kw in keywords %}
+                        <tr>
+                            <td>
+                                <div class="fw-bold">{{ kw.keyword }}</div>
+                                <small class="text-muted text-truncate d-block" style="max-width: 240px;">{{ kw.target_url }}</small>
+                            </td>
+                            <td>
+                                {% if kw.current_position > 0 and kw.current_position <= 10 %}
+                                    <span class="badge bg-success badge-pos">صفحه ۱ (#{{ kw.current_position }})</span>
+                                {% elif kw.current_position > 10 and kw.current_position <= 20 %}
+                                    <span class="badge bg-info badge-pos">صفحه ۲ (#{{ kw.current_position }})</span>
+                                {% elif kw.current_position > 20 %}
+                                    <span class="badge bg-secondary badge-pos">#{{ kw.current_position }}</span>
+                                {% else %}
+                                    <span class="badge bg-dark border text-muted">نامشخص</span>
+                                {% endif %}
+                            </td>
+                            <td><span class="text-info fw-bold">#{{ kw.best_position or '-' }}</span></td>
+                            <td>
+                                {% set change = (kw.previous_position - kw.current_position) if (kw.previous_position > 0 and kw.current_position > 0) else 0 %}
+                                {% if change > 0 %}
+                                    <span class="text-success small fw-bold"><i class="fas fa-arrow-up"></i> +{{ change }}</span>
+                                {% elif change < 0 %}
+                                    <span class="text-danger small fw-bold"><i class="fas fa-arrow-down"></i> {{ change }}</span>
+                                {% else %}
+                                    <span class="text-muted small">-</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <form action="/api/keywords/{{ kw.id }}/delete" method="POST" onsubmit="return confirm('کلمه حذف شود؟');">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

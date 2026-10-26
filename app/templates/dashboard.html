@@ -1,0 +1,199 @@
+{% extends "base.html" %}
+
+{% block title %}داشبورد اجرایی سئو | SEO Command Center{% endblock %}
+{% block page_heading %}داشبورد اجرایی و رصد چندسایته{% endblock %}
+
+{% block content %}
+<div class="row g-4 mb-4">
+    <!-- Stat 1: Websites -->
+    <div class="col-xl-3 col-md-6">
+        <div class="stat-card d-flex align-items-center justify-content-between">
+            <div>
+                <span class="text-muted small">وب‌سایت‌های فعال</span>
+                <h2 class="h3 fw-bold mb-0 mt-1">{{ stats.total_sites }}</h2>
+                <small class="text-success"><i class="fas fa-check-circle me-1"></i>تحت پشتیبانی مستمر</small>
+            </div>
+            <div class="stat-icon bg-info bg-opacity-10 text-info">
+                <i class="fas fa-globe"></i>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stat 2: Keywords Tracked -->
+    <div class="col-xl-3 col-md-6">
+        <div class="stat-card d-flex align-items-center justify-content-between">
+            <div>
+                <span class="text-muted small">کلمات کلیدی پایش‌شده</span>
+                <h2 class="h3 fw-bold mb-0 mt-1">{{ stats.total_keywords }}</h2>
+                <small class="text-primary"><i class="fas fa-satellite me-1"></i>رصد روزانه SERP</small>
+            </div>
+            <div class="stat-icon bg-primary bg-opacity-10 text-primary">
+                <i class="fas fa-key"></i>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stat 3: Page 1 Keywords -->
+    <div class="col-xl-3 col-md-6">
+        <div class="stat-card d-flex align-items-center justify-content-between">
+            <div>
+                <span class="text-muted small">کلمات در صفحه اول (Top 10)</span>
+                <h2 class="h3 fw-bold mb-0 mt-1">{{ stats.page_one_keywords }}</h2>
+                <small class="text-success"><i class="fas fa-arrow-trend-up me-1"></i>رشد صعودی</small>
+            </div>
+            <div class="stat-icon bg-success bg-opacity-10 text-success">
+                <i class="fas fa-trophy"></i>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stat 4: Average Health Score -->
+    <div class="col-xl-3 col-md-6">
+        <div class="stat-card d-flex align-items-center justify-content-between">
+            <div>
+                <span class="text-muted small">میانگین سلامت فنی</span>
+                <h2 class="h3 fw-bold mb-0 mt-1">{{ stats.avg_health_score }}%</h2>
+                <small class="text-warning"><i class="fas fa-shield-halved me-1"></i>تست ۳۰۱، SSL و اسکیما</small>
+            </div>
+            <div class="stat-icon bg-warning bg-opacity-10 text-warning">
+                <i class="fas fa-heart-pulse"></i>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Intro Project Banner Card -->
+<div class="card card-custom p-4 mb-4">
+    <div class="row align-items-center">
+        <div class="col-lg-8">
+            <span class="badge bg-primary mb-2">سیستم جامع اتوماسیون سئو</span>
+            <h2 class="h4 fw-bold">مدیریت متمرکز پروژه‌ها و کلاینت‌ها</h2>
+            <p class="text-muted mb-3">
+                این پنل به شما اجازه می‌دهد رتبه دامنه‌های شخصی و مشتریان را روی کلمات هدف رصد کنید، با یک کلیک صفحات جدید را به موتورهای جستجو ایندکس فوری بفرستید، و با هوش مصنوعی مقالات بومی با کد اسکیما تولید و مستقیماً منتشر نمایید.
+            </p>
+            <div class="d-flex flex-wrap gap-2">
+                <a href="/sites" class="btn btn-primary-custom"><i class="fas fa-plus me-1"></i>افزودن سایت جدید</a>
+                <a href="/rank-tracker" class="btn btn-outline-light"><i class="fas fa-arrow-trend-up me-1"></i>پایش کلمات کلیدی</a>
+                <a href="/content-generator" class="btn btn-outline-info"><i class="fas fa-magic me-1"></i>تولید مقاله با AI</a>
+            </div>
+        </div>
+        <div class="col-lg-4 text-center d-none d-lg-block">
+            <img src="/static/images/intro-banner.png" alt="SEO Command Center" class="img-fluid rounded-4 shadow border" style="border-color: var(--card-border) !important; max-height: 180px;">
+        </div>
+    </div>
+</div>
+
+<!-- Websites Summary Table -->
+<div class="card card-custom p-4 mb-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+            <h2 class="h5 fw-bold mb-1">لیست وب‌سایت‌های تحت پوشش</h2>
+            <small class="text-muted">مشاهده وضعیت کلی، امتیاز فنی و دسترسی سریع به ابزارها</small>
+        </div>
+        <a href="/sites" class="btn btn-sm btn-outline-secondary">مدیریت کامل سایت‌ها</a>
+    </div>
+
+    <div class="table-responsive">
+        <table class="table table-dark-custom align-middle">
+            <thead>
+                <tr>
+                    <th>شناسه</th>
+                    <th>نام سایت</th>
+                    <th>دامنه</th>
+                    <th>شهر هدف</th>
+                    <th>دسته‌بندی</th>
+                    <th>کلمات فعال</th>
+                    <th>عملیات سریع</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for site in sites %}
+                <tr>
+                    <td>#{{ site.id }}</td>
+                    <td class="fw-bold">{{ site.name }}</td>
+                    <td>
+                        <a href="https://{{ site.domain }}" target="_blank" class="text-info text-decoration-none">
+                            {{ site.domain }} <i class="fas fa-arrow-up-right-from-square small"></i>
+                        </a>
+                    </td>
+                    <td><span class="badge bg-secondary">{{ site.city }}</span></td>
+                    <td><small class="text-muted">{{ site.category }}</small></td>
+                    <td>
+                        <span class="badge bg-primary bg-opacity-25 text-primary">{{ site.keyword_count }} کلمه</span>
+                    </td>
+                    <td>
+                        <div class="d-flex gap-1">
+                            <a href="/sites/{{ site.id }}" class="btn btn-sm btn-outline-info" title="مشاهده جزئیات">
+                                <i class="fas fa-eye"></i>
+                            </a>
+                            <a href="/rank-tracker?site_id={{ site.id }}" class="btn btn-sm btn-outline-success" title="رصد رتبه‌ها">
+                                <i class="fas fa-chart-line"></i>
+                            </a>
+                            <a href="/health-audit?site_id={{ site.id }}" class="btn btn-sm btn-outline-warning" title="تست سلامت فنی">
+                                <i class="fas fa-shield-heart"></i>
+                            </a>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Keywords Performance Preview -->
+<div class="card card-custom p-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+            <h2 class="h5 fw-bold mb-1">آخرین موقعیت کلمات کلیدی (نمونه تبریز تی‌وی)</h2>
+            <small class="text-muted">وضعیت جایگاه در نتایج گوگل و بهترین رتبه ثبت‌شده</small>
+        </div>
+        <a href="/rank-tracker" class="btn btn-sm btn-outline-primary">مشاهده تمام کلمات</a>
+    </div>
+
+    <div class="table-responsive">
+        <table class="table table-dark-custom align-middle">
+            <thead>
+                <tr>
+                    <th>کلمه کلیدی</th>
+                    <th>سایت مربوطه</th>
+                    <th>رتبه فعلی در گوگل</th>
+                    <th>بهترین رتبه</th>
+                    <th>وضعیت</th>
+                    <th>بروزرسانی</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for kw in top_keywords %}
+                <tr>
+                    <td class="fw-bold text-white">{{ kw.keyword }}</td>
+                    <td><small class="text-muted">{{ kw.domain }}</small></td>
+                    <td>
+                        {% if kw.current_position > 0 and kw.current_position <= 10 %}
+                            <span class="badge bg-success badge-pos">صفحه ۱ (رتبه {{ kw.current_position }})</span>
+                        {% elif kw.current_position > 10 and kw.current_position <= 20 %}
+                            <span class="badge bg-info badge-pos">صفحه ۲ (رتبه {{ kw.current_position }})</span>
+                        {% elif kw.current_position > 20 %}
+                            <span class="badge bg-secondary badge-pos">رتبه {{ kw.current_position }}</span>
+                        {% else %}
+                            <span class="badge bg-dark border badge-pos text-muted">در حال بازیابی</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <span class="text-info fw-bold">#{{ kw.best_position or '-' }}</span>
+                    </td>
+                    <td>
+                        {% if kw.current_position > 0 and kw.current_position <= 10 %}
+                            <span class="text-success small"><i class="fas fa-circle-up me-1"></i>موقعیت طلایی</span>
+                        {% else %}
+                            <span class="text-warning small"><i class="fas fa-clock me-1"></i>نیاز به محتوا</span>
+                        {% endif %}
+                    </td>
+                    <td><small class="text-muted">{{ kw.last_checked_at or 'به‌تازگی' }}</small></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

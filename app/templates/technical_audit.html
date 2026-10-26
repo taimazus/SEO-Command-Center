@@ -1,0 +1,167 @@
+{% extends "base.html" %}
+
+{% block title %}پایش سلامت فنی سئو | SEO Command Center{% endblock %}
+{% block page_heading %}پایش سلامت فنی و بررسی ریدایرکت‌های ۳۰۱{% endblock %}
+
+{% block content %}
+<div class="row g-4 mb-4">
+    <!-- Trigger Scan Box -->
+    <div class="col-12">
+        <div class="card card-custom p-4">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <h2 class="h5 fw-bold mb-1"><i class="fas fa-stethoscope text-success me-2"></i>اسکن فوری سلامت فنی وب‌سایت</h2>
+                    <p class="text-muted small mb-0">بررسی زنده کدهای وضعیت HTTP، وجود تگ H1، گواهی SSL، تگ Canonical، فایل نقشه سایت و کارکرد ریدایرکت ۳۰۱ ساب‌دامین www.</p>
+                </div>
+                <div class="col-md-4 text-md-end mt-3 mt-md-0">
+                    <form action="/api/run-audit" method="POST" class="d-flex gap-2 justify-content-md-end">
+                        <select name="site_id" class="form-select form-select-sm" style="max-width: 200px;" required>
+                            {% for s in sites %}
+                            <option value="{{ s.id }}" {% if selected_site_id == s.id %}selected{% endif %}>{{ s.name }} ({{ s.domain }})</option>
+                            {% endfor %}
+                        </select>
+                        <button type="submit" class="btn btn-primary-custom btn-sm text-nowrap">
+                            <i class="fas fa-play me-1"></i>شروع تست
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% if audit %}
+    <!-- Audit Result Card -->
+    <div class="col-lg-4">
+        <div class="card card-custom p-4 text-center">
+            <span class="text-muted small">امتیاز سلامت فنی</span>
+            <div class="my-3">
+                <span class="display-3 fw-bold {% if audit.score >= 80 %}text-success{% elif audit.score >= 50 %}text-warning{% else %}text-danger{% endif %}">
+                    {{ audit.score }}
+                </span>
+                <span class="text-muted fs-4">/۱۰۰</span>
+            </div>
+            <div>
+                {% if audit.score >= 80 %}
+                    <span class="badge bg-success bg-opacity-25 text-success px-3 py-2">عالی - استانداردهای فنی رعایت شده</span>
+                {% else %}
+                    <span class="badge bg-warning bg-opacity-25 text-warning px-3 py-2">نیاز به رفع اشکالات فنی</span>
+                {% endif %}
+            </div>
+
+            <hr class="border-secondary my-4">
+
+            <div class="text-start">
+                <div class="d-flex justify-content-between mb-2">
+                    <span class="text-muted small">زمان پاسخ سرور:</span>
+                    <strong class="text-info">{{ audit.response_time_ms }} میلی‌ثانیه</strong>
+                </div>
+                <div class="d-flex justify-content-between mb-2">
+                    <span class="text-muted small">کد وضعیت سرور:</span>
+                    <strong class="text-success">{{ audit.status_code }} OK</strong>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Audit Checklist & Details -->
+    <div class="col-lg-8">
+        <div class="card card-custom p-4">
+            <h2 class="h5 fw-bold mb-3">چک‌لیست عوامل حیاتی سئو</h2>
+
+            <div class="list-group list-group-flush mb-4">
+                <!-- SSL -->
+                <div class="list-group-item bg-transparent text-white border-secondary d-flex justify-content-between align-items-center py-2 px-0">
+                    <div>
+                        <i class="fas fa-lock {% if audit.has_ssl %}text-success{% else %}text-danger{% endif %} me-2"></i>
+                        <span>گواهی امنیتی HTTPS / SSL</span>
+                    </div>
+                    {% if audit.has_ssl %}
+                        <span class="badge bg-success"><i class="fas fa-check me-1"></i>فعال و معتبر</span>
+                    {% else %}
+                        <span class="badge bg-danger">غیرفعال یا نامعتبر</span>
+                    {% endif %}
+                </div>
+
+                <!-- 301 Redirect -->
+                <div class="list-group-item bg-transparent text-white border-secondary d-flex justify-content-between align-items-center py-2 px-0">
+                    <div>
+                        <i class="fas fa-route {% if audit.redirect_301_working %}text-success{% else %}text-warning{% endif %} me-2"></i>
+                        <span>ریدایرکت ۳۰۱ دائمی ساب‌دامین www به ریشه</span>
+                    </div>
+                    {% if audit.redirect_301_working %}
+                        <span class="badge bg-success"><i class="fas fa-check me-1"></i>ریدایرکت ۳۰۱ فعال</span>
+                    {% else %}
+                        <span class="badge bg-warning text-dark">بررسی نیاز به ریدایرکت</span>
+                    {% endif %}
+                </div>
+
+                <!-- H1 Tag -->
+                <div class="list-group-item bg-transparent text-white border-secondary d-flex justify-content-between align-items-center py-2 px-0">
+                    <div>
+                        <i class="fas fa-heading {% if audit.has_h1 %}text-success{% else %}text-danger{% endif %} me-2"></i>
+                        <span>تگ اصلی صفحه (H1)</span>
+                    </div>
+                    {% if audit.has_h1 %}
+                        <span class="badge bg-success" title="{{ audit.h1_text }}"><i class="fas fa-check me-1"></i>موجود در صفحه</span>
+                    {% else %}
+                        <span class="badge bg-danger">تگ H1 یافت نشد</span>
+                    {% endif %}
+                </div>
+
+                <!-- Canonical -->
+                <div class="list-group-item bg-transparent text-white border-secondary d-flex justify-content-between align-items-center py-2 px-0">
+                    <div>
+                        <i class="fas fa-link {% if audit.has_canonical %}text-success{% else %}text-danger{% endif %} me-2"></i>
+                        <span>تگ کنونیکال (Canonical Tag)</span>
+                    </div>
+                    {% if audit.has_canonical %}
+                        <span class="badge bg-success"><i class="fas fa-check me-1"></i>تعریف شده</span>
+                    {% else %}
+                        <span class="badge bg-warning text-dark">تعریف نشده</span>
+                    {% endif %}
+                </div>
+
+                <!-- Sitemap.xml -->
+                <div class="list-group-item bg-transparent text-white border-secondary d-flex justify-content-between align-items-center py-2 px-0">
+                    <div>
+                        <i class="fas fa-sitemap {% if audit.has_sitemap %}text-success{% else %}text-warning{% endif %} me-2"></i>
+                        <span>نقشه سایت (Sitemap.xml)</span>
+                    </div>
+                    {% if audit.has_sitemap %}
+                        <span class="badge bg-success"><i class="fas fa-check me-1"></i>معتبر</span>
+                    {% else %}
+                        <span class="badge bg-warning text-dark">یافت نشد</span>
+                    {% endif %}
+                </div>
+
+                <!-- Robots.txt -->
+                <div class="list-group-item bg-transparent text-white border-secondary d-flex justify-content-between align-items-center py-2 px-0">
+                    <div>
+                        <i class="fas fa-robot {% if audit.has_robots %}text-success{% else %}text-warning{% endif %} me-2"></i>
+                        <span>فایل راهنمای ربات‌ها (Robots.txt)</span>
+                    </div>
+                    {% if audit.has_robots %}
+                        <span class="badge bg-success"><i class="fas fa-check me-1"></i>موجود</span>
+                    {% else %}
+                        <span class="badge bg-warning text-dark">یافت نشد</span>
+                    {% endif %}
+                </div>
+            </div>
+
+            {% if audit.issues %}
+                <h3 class="h6 fw-bold text-warning mb-2">هشدارهای شناسایی شده:</h3>
+                <ul class="mb-0 text-muted small">
+                    {% for issue in audit.issues %}
+                    <li class="mb-1">{{ issue }}</li>
+                    {% endfor %}
+                </ul>
+            {% else %}
+                <div class="alert alert-success py-2 mb-0 small">
+                    <i class="fas fa-circle-check me-1"></i>هیچ مشکل ساختاری حادی در این وب‌سایت مشاهده نشد.
+                </div>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,104 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" width="1200" height="630">
+  <defs>
+    <linearGradient id="bg-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0f172a" />
+      <stop offset="50%" stop-color="#1e1b4b" />
+      <stop offset="100%" stop-color="#090d16" />
+    </linearGradient>
+    <linearGradient id="card-grad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#1e293b" stop-opacity="0.9" />
+      <stop offset="100%" stop-color="#0f172a" stop-opacity="0.95" />
+    </linearGradient>
+    <linearGradient id="accent-grad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#38bdf8" />
+      <stop offset="50%" stop-color="#818cf8" />
+      <stop offset="100%" stop-color="#c084fc" />
+    </linearGradient>
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="40" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1200" height="630" fill="url(#bg-grad)" />
+
+  <!-- Ambient Glow Orbs -->
+  <circle cx="200" cy="150" r="180" fill="#38bdf8" opacity="0.15" filter="url(#glow)" />
+  <circle cx="1000" cy="450" r="220" fill="#a855f7" opacity="0.15" filter="url(#glow)" />
+  <circle cx="600" cy="300" r="150" fill="#10b981" opacity="0.08" filter="url(#glow)" />
+
+  <!-- Main Canvas Card -->
+  <rect x="50" y="45" width="1100" height="540" rx="24" fill="url(#card-grad)" stroke="#334155" stroke-width="2" />
+  
+  <!-- Accent Top Border -->
+  <rect x="52" y="47" width="1096" height="6" rx="3" fill="url(#accent-grad)" />
+
+  <!-- Badges -->
+  <g transform="translate(90, 85)">
+    <rect x="0" y="0" width="180" height="34" rx="17" fill="#0284c7" />
+    <text x="90" y="22" font-family="system-ui, sans-serif" font-size="13" font-weight="700" fill="#ffffff" text-anchor="middle">SEO COMMAND CENTER</text>
+    
+    <rect x="195" y="0" width="165" height="34" rx="17" fill="#059669" />
+    <text x="277" y="22" font-family="system-ui, sans-serif" font-size="13" font-weight="700" fill="#ffffff" text-anchor="middle">MULTI-SITE SAAS</text>
+
+    <rect x="375" y="0" width="160" height="34" rx="17" fill="#7c3aed" />
+    <text x="455" y="22" font-family="system-ui, sans-serif" font-size="13" font-weight="700" fill="#ffffff" text-anchor="middle">AI SERP AUTOPILOT</text>
+  </g>
+
+  <!-- Titles -->
+  <text x="90" y="180" font-family="'Vazirmatn', system-ui, Tahoma, sans-serif" font-size="38" font-weight="900" fill="#f8fafc" direction="rtl">مرکز فرماندهی و اتوماسیون سئو چندسایته</text>
+  <text x="90" y="225" font-family="system-ui, sans-serif" font-size="18" font-weight="500" fill="#94a3b8">Centralized Multi-Tenant SEO Platform, Live SERP Tracking &amp; AI Content Engine</text>
+
+  <!-- Feature Cards Grid -->
+  <!-- Card 1 -->
+  <g transform="translate(90, 275)">
+    <rect width="235" height="175" rx="16" fill="#0f172a" stroke="#38bdf8" stroke-width="1.5" />
+    <circle cx="40" cy="40" r="18" fill="#0284c7" fill-opacity="0.2" />
+    <text x="40" y="46" font-family="system-ui, sans-serif" font-size="16" fill="#38bdf8" text-anchor="middle">🌐</text>
+    <text x="215" y="46" font-family="'Vazirmatn', Tahoma, sans-serif" font-size="17" font-weight="700" fill="#38bdf8" text-anchor="end">مدیریت چندسایته</text>
+    <text x="215" y="85" font-family="'Vazirmatn', Tahoma, sans-serif" font-size="13" fill="#cbd5e1" text-anchor="end">پشتیبانی همزمان از ده‌ها دامنه</text>
+    <text x="215" y="115" font-family="'Vazirmatn', Tahoma, sans-serif" font-size="13" fill="#cbd5e1" text-anchor="end">تفکیک پروژه، شهر و رقبا</text>
+    <text x="215" y="145" font-family="'Vazirmatn', Tahoma, sans-serif" font-size="12" fill="#64748b" text-anchor="end">مخصوص شرکت‌ها و فریلنسرها</text>
+  </g>
+
+  <!-- Card 2 -->
+  <g transform="translate(350, 275)">
+    <rect width="235" height="175" rx="16" fill="#0f172a" stroke="#34d399" stroke-width="1.5" />
+    <circle cx="40" cy="40" r="18" fill="#059669" fill-opacity="0.2" />
+    <text x="40" y="46" font-family="system-ui, sans-serif" font-size="16" fill="#34d399" text-anchor="middle">📈</text>
+    <text x="215" y="46" font-family="'Vazirmatn', Tahoma, sans-serif" font-size="17" font-weight="700" fill="#34d399" text-anchor="end">رصد زنده رتبه گوگل</text>
+    <text x="215" y="85" font-family="'Vazirmatn', Tahoma, sans-serif" font-size="13" fill="#cbd5e1" text-anchor="end">پایش خودکار موقعیت کلمات</text>
+    <text x="215" y="115" font-family="'Vazirmatn', Tahoma, sans-serif" font-size="13" fill="#cbd5e1" text-anchor="end">نمودار تاریخچه صعود به صفحه ۱</text>
+    <text x="215" y="145" font-family="'Vazirmatn', Tahoma, sans-serif" font-size="12" fill="#64748b" text-anchor="end">تفکیک سئو ارگانیک و مپ</text>
+  </g>
+
+  <!-- Card 3 -->
+  <g transform="translate(610, 275)">
+    <rect width="235" height="175" rx="16" fill="#0f172a" stroke="#a78bfa" stroke-width="1.5" />
+    <circle cx="40" cy="40" r="18" fill="#7c3aed" fill-opacity="0.2" />
+    <text x="40" y="46" font-family="system-ui, sans-serif" font-size="16" fill="#a78bfa" text-anchor="middle">🤖</text>
+    <text x="215" y="46" font-family="'Vazirmatn', Tahoma, sans-serif" font-size="17" font-weight="700" fill="#a78bfa" text-anchor="end">تولید محتوای هوشمند</text>
+    <text x="215" y="85" font-family="'Vazirmatn', Tahoma, sans-serif" font-size="13" fill="#cbd5e1" text-anchor="end">تولید مقالات بومی و عمیق</text>
+    <text x="215" y="115" font-family="'Vazirmatn', Tahoma, sans-serif" font-size="13" fill="#cbd5e1" text-anchor="end">کدهای FAQ Schema استاندارد</text>
+    <text x="215" y="145" font-family="'Vazirmatn', Tahoma, sans-serif" font-size="12" fill="#64748b" text-anchor="end">انتشار مستقیم در دیتابیس</text>
+  </g>
+
+  <!-- Card 4 -->
+  <g transform="translate(870, 275)">
+    <rect width="235" height="175" rx="16" fill="#0f172a" stroke="#f59e0b" stroke-width="1.5" />
+    <circle cx="40" cy="40" r="18" fill="#d97706" fill-opacity="0.2" />
+    <text x="40" y="46" font-family="system-ui, sans-serif" font-size="16" fill="#f59e0b" text-anchor="middle">⚡</text>
+    <text x="215" y="46" font-family="'Vazirmatn', Tahoma, sans-serif" font-size="17" font-weight="700" fill="#f59e0b" text-anchor="end">ایندکس آنی و سلامت</text>
+    <text x="215" y="85" font-family="'Vazirmatn', Tahoma, sans-serif" font-size="13" fill="#cbd5e1" text-anchor="end">ارسال به گوگل و IndexNow</text>
+    <text x="215" y="115" font-family="'Vazirmatn', Tahoma, sans-serif" font-size="13" fill="#cbd5e1" text-anchor="end">تست خطای ۳۰۱، SSL و H1</text>
+    <text x="215" y="145" font-family="'Vazirmatn', Tahoma, sans-serif" font-size="12" fill="#64748b" text-anchor="end">گزارش سلامت فنی ۱۰۰/۱۰۰</text>
+  </g>
+
+  <!-- Footer Info -->
+  <g transform="translate(90, 490)">
+    <rect width="1015" height="48" rx="12" fill="#0b1120" stroke="#1e293b" />
+    <text x="25" y="30" font-family="system-ui, sans-serif" font-size="13" font-weight="600" fill="#38bdf8">Designed for Developers, Agencies &amp; SEO Masters</text>
+    <text x="990" y="30" font-family="'Vazirmatn', Tahoma, sans-serif" font-size="13" fill="#94a3b8" text-anchor="end">متصل به Google Search Console API و سیستم رصد خودکار</text>
+  </g>
+</svg>

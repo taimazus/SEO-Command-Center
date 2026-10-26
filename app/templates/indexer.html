@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+
+{% block title %}ایندکس آنی صفحات | SEO Command Center{% endblock %}
+{% block page_heading %}ارسال آنی صفحات برای ایندکس سریع (Google & IndexNow){% endblock %}
+
+{% block content %}
+<div class="row g-4 mb-4">
+    <!-- Submitter Box -->
+    <div class="col-lg-5">
+        <div class="card card-custom p-4 mb-4">
+            <h2 class="h5 fw-bold mb-3"><i class="fas fa-bolt text-warning me-2"></i>ارسال مستقیم لینک‌ها</h2>
+            <p class="text-muted small">لینک صفحات جدید، مقالات یا برگه‌های به‌روزرسانی شده را وارد کنید تا مستقیماً به صف خزش فوری ارسال شوند.</p>
+
+            <form action="/api/submit-indexing" method="POST">
+                <div class="mb-3">
+                    <label class="form-label small fw-bold">انتخاب وب‌سایت *</label>
+                    <select name="site_id" class="form-select" required>
+                        {% for s in sites %}
+                        <option value="{{ s.id }}">{{ s.name }} ({{ s.domain }})</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label small fw-bold">آدرس‌های URL (هر خط یک آدرس) *</label>
+                    <textarea name="urls" rows="5" class="form-control text-start font-monospace" placeholder="https://tbztvrepair.ir/Services.aspx?id=11&#10;https://tbztvrepair.ir/Services.aspx?id=12" required></textarea>
+                </div>
+                <button type="submit" class="btn btn-primary-custom w-100">
+                    <i class="fas fa-paper-plane me-1"></i>ارسال به صف ایندکس آنی
+                </button>
+            </form>
+        </div>
+
+        <div class="card card-custom p-4">
+            <h2 class="h6 fw-bold mb-2"><i class="fas fa-sitemap text-info me-2"></i>خواندن خودکار از نقشه سایت</h2>
+            <p class="text-muted small">استخراج تمام صفحات فعال از روی فایل sitemap.xml و ارسال دسته‌ای:</p>
+            <form action="/api/index-sitemap" method="POST">
+                <div class="mb-3">
+                    <select name="site_id" class="form-select" required>
+                        {% for s in sites %}
+                        <option value="{{ s.id }}">{{ s.name }} ({{ s.sitemap_url or s.domain }})</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <button type="submit" class="btn btn-outline-info w-100 btn-sm">
+                    <i class="fas fa-cloud-arrow-up me-1"></i>همگام‌سازی و ایندکس از روی نقشه
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Indexing Logs -->
+    <div class="col-lg-7">
+        <div class="card card-custom p-4">
+            <h2 class="h5 fw-bold mb-3">تاریخچه ارسال درخواست‌های ایندکس ({{ logs|length }})</h2>
+
+            <div class="table-responsive">
+                <table class="table table-dark-custom align-middle">
+                    <thead>
+                        <tr>
+                            <th>آدرس صفحه (URL)</th>
+                            <th>موتور جستجو</th>
+                            <th>وضعیت</th>
+                            <th>کد پاسخ</th>
+                            <th>زمان ثبت</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% if logs %}
+                            {% for l in logs %}
+                            <tr>
+                                <td>
+                                    <small class="text-truncate d-block font-monospace text-start" style="max-width: 250px;">
+                                        {{ l.url }}
+                                    </small>
+                                </td>
+                                <td><span class="badge bg-secondary">{{ l.engine }}</span></td>
+                                <td>
+                                    <span class="badge bg-success bg-opacity-25 text-success">{{ l.status }}</span>
+                                </td>
+                                <td><span class="font-monospace text-info">{{ l.response_code or '200' }}</span></td>
+                                <td><small class="text-muted">{{ l.submitted_at }}</small></td>
+                            </tr>
+                            {% endfor %}
+                        {% else %}
+                            <tr>
+                                <td colspan="5" class="text-center py-4 text-muted">
+                                    هنوز درخواستی ارسال نشده است.
+                                </td>
+                            </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
