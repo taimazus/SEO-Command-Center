@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 
 {% block title %}پزشک سورس‌کد و دستیار انتشار | SEO Command Center{% endblock %}
-{% block page_heading %}پزشک سورس‌کد، رفع ایرادات و تولید پکیج پابلیش (Source Doctor){% endblock %}
+{% block page_heading %}پزشک سورس‌کد، رفع ایرادات و استقرار خودکار هاست (Source Doctor & Deployer){% endblock %}
 
 {% block content %}
 <div class="row g-4 mb-4">
@@ -69,6 +69,52 @@
                 <input type="hidden" name="project_path" value="{{ project_path }}">
             </form>
             {% endif %}
+
+            <!-- Plesk Direct FTP Deployer Section -->
+            <div class="mt-4 pt-3 border-top" style="border-color: var(--border-subtle) !important;">
+                <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
+                    <span class="fw-bold text-white small"><i class="fas fa-server text-info me-2"></i>استقرار مستقیم روی هاست پلسک از طریق FTP / FTPS</span>
+                    <button class="btn btn-sm btn-outline-contrast-light py-0 px-2" type="button" data-bs-toggle="collapse" data-bs-target="#ftpConfigCollapse">
+                        <i class="fas fa-gear me-1"></i>تنظیمات اتصال هاست
+                    </button>
+                </div>
+
+                <div class="collapse {% if not current_site.ftp_host %}show{% endif %}" id="ftpConfigCollapse">
+                    <form action="/api/sites/{{ current_site.id }}/update-ftp" method="POST" class="row g-2 align-items-end p-3 rounded-3" style="background-color: #090e1a; border: 1.5px dashed #243552;">
+                        <div class="col-md-3">
+                            <label class="form-label small text-white">آدرس هاست / سرور FTP *</label>
+                            <input type="text" name="ftp_host" class="form-control form-control-sm font-monospace" placeholder="ftp.tbztvrepair.ir" value="{{ current_site.ftp_host or '' }}" required>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label small text-white">پورت</label>
+                            <input type="number" name="ftp_port" class="form-control form-control-sm font-monospace" value="{{ current_site.ftp_port or 21 }}">
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label small text-white">نام کاربری FTP *</label>
+                            <input type="text" name="ftp_user" class="form-control form-control-sm font-monospace" value="{{ current_site.ftp_user or '' }}" required>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label small text-white">رمز عبور FTP *</label>
+                            <input type="password" name="ftp_pass" class="form-control form-control-sm font-monospace" value="{{ current_site.ftp_pass or '' }}" required>
+                        </div>
+                        <div class="col-md-3 d-flex gap-2">
+                            <button type="submit" class="btn btn-emerald btn-sm flex-grow-1">
+                                <i class="fas fa-save me-1"></i>ذخیره مشخصات
+                            </button>
+                            <button type="submit" formaction="/api/sites/{{ current_site.id }}/test-ftp" class="btn btn-outline-contrast-cyan btn-sm text-nowrap">
+                                <i class="fas fa-plug me-1"></i>تست اتصال
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                {% if ftp_message %}
+                <div class="alert {% if ftp_success %}alert-success bg-success{% else %}alert-danger bg-danger{% endif %} bg-opacity-10 border mt-3 p-3 rounded-3">
+                    <i class="fas {% if ftp_success %}fa-check-circle text-success{% else %}fa-circle-exclamation text-danger{% endif %} me-1"></i>
+                    {{ ftp_message }}
+                </div>
+                {% endif %}
+            </div>
         </div>
     </div>
 
@@ -107,7 +153,19 @@
                     </div>
                 </div>
 
-                <div class="mt-4">
+                <div class="mt-4 d-flex flex-column gap-2">
+                    <!-- Direct FTP Deploy Button -->
+                    {% if current_site.ftp_host %}
+                    <form action="/api/source-doctor/deploy-ftp" method="POST">
+                        <input type="hidden" name="project_path" value="{{ project_path }}">
+                        <input type="hidden" name="site_id" value="{{ current_site.id }}">
+                        <button type="submit" class="btn btn-emerald w-100 fw-bold" onclick="return confirm('آیا فایل‌های تغییریافته مستقیماً روی هاست پلسک جایگزین شوند؟');">
+                            <i class="fas fa-cloud-arrow-up me-1"></i>استقرار مستقیم روی هاست با FTP
+                        </button>
+                    </form>
+                    {% endif %}
+
+                    <!-- Export ZIP Button -->
                     <form action="/api/source-doctor/export-zip" method="POST">
                         <input type="hidden" name="project_path" value="{{ project_path }}">
                         <button type="submit" class="btn btn-warning w-100 fw-bold">
@@ -227,9 +285,7 @@
         if (savedPath) {
             document.getElementById('projectPathInput').value = savedPath;
         }
-        // Sync active site cookie
         document.cookie = "active_site_id=" + selectElem.value + "; path=/; max-age=31536000; SameSite=Lax";
-        // Submit form to reload scan
         document.getElementById('doctorForm').submit();
     }
 

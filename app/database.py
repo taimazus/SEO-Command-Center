@@ -1,19 +1,19 @@
 import os
 import sqlite3
 from datetime import datetime
-from typing import List, Dict, Any, Optional
 
-DB_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data")
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+DB_DIR = os.path.join(BASE_DIR, "data")
 DB_PATH = os.path.join(DB_DIR, "seo_center.db")
 
-def get_connection() -> sqlite3.Connection:
+def get_connection():
     os.makedirs(DB_DIR, exist_ok=True)
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
-    conn.execute("PRAGMA foreign_keys = ON;")
     return conn
 
 def init_db():
+    os.makedirs(DB_DIR, exist_ok=True)
     conn = get_connection()
     cursor = conn.cursor()
 
@@ -27,6 +27,17 @@ def init_db():
         sitemap_url TEXT,
         gsc_site_url TEXT,
         project_path TEXT,
+        ftp_host TEXT,
+        ftp_port INTEGER DEFAULT 21,
+        ftp_user TEXT,
+        ftp_pass TEXT,
+        ftp_root TEXT DEFAULT '/httpdocs',
+        wp_api_url TEXT,
+        wp_user TEXT,
+        wp_app_pass TEXT,
+        telegram_chat_id TEXT,
+        telegram_bot_token TEXT,
+        autopilot_enabled BOOLEAN DEFAULT 1,
         auto_index BOOLEAN DEFAULT 1,
         is_active BOOLEAN DEFAULT 1,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -105,14 +116,62 @@ def init_db():
         position REAL DEFAULT 0.0,
         fetched_at DATETIME DEFAULT CURRENT_TIMESTAMP
     );
+
+    CREATE TABLE IF NOT EXISTS system_alerts (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        site_id INTEGER REFERENCES sites(id) ON DELETE CASCADE,
+        level TEXT NOT NULL,
+        category TEXT NOT NULL,
+        title TEXT NOT NULL,
+        message TEXT NOT NULL,
+        is_read BOOLEAN DEFAULT 0,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS seo_recommendations (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        site_id INTEGER NOT NULL REFERENCES sites(id) ON DELETE CASCADE,
+        rec_type TEXT NOT NULL,
+        title TEXT NOT NULL,
+        description TEXT NOT NULL,
+        action_plan TEXT NOT NULL,
+        impact_level TEXT DEFAULT 'high',
+        is_applied BOOLEAN DEFAULT 0,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS autopilot_runs (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        run_type TEXT NOT NULL,
+        summary TEXT NOT NULL,
+        items_processed INTEGER DEFAULT 0,
+        alerts_generated INTEGER DEFAULT 0,
+        ran_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
     """)
 
-    # Migration: check if project_path column exists
-    columns = [col["name"] for col in cursor.execute("PRAGMA table_info(sites)").fetchall()]
-    if "project_path" not in columns:
-        cursor.execute("ALTER TABLE sites ADD COLUMN project_path TEXT;")
+    # Migrations for existing sites table
+    existing_cols = [col["name"] for col in cursor.execute("PRAGMA table_info(sites)").fetchall()]
+    new_cols = {
+        "project_path": "TEXT",
+        "ftp_host": "TEXT",
+        "ftp_port": "INTEGER DEFAULT 21",
+        "ftp_user": "TEXT",
+        "ftp_pass": "TEXT",
+        "ftp_root": "TEXT DEFAULT '/httpdocs'",
+        "wp_api_url": "TEXT",
+        "wp_user": "TEXT",
+        "wp_app_pass": "TEXT",
+        "telegram_chat_id": "TEXT",
+        "telegram_bot_token": "TEXT",
+        "autopilot_enabled": "BOOLEAN DEFAULT 1"
+    }
 
-    # Seed or update initial data for Tabriz TV
+    for col_name, col_type in new_cols.items():
+        if col_name not in existing_cols:
+            cursor.execute(f"ALTER TABLE sites ADD COLUMN {col_name} {col_type};")
+
+    # Seed initial data for Tabriz TV if empty
     cursor.execute("SELECT COUNT(*) AS count FROM sites")
     if cursor.fetchone()["count"] == 0:
         cursor.execute("""

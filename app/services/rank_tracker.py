@@ -12,7 +12,7 @@ USER_AGENTS = [
     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4.1 Safari/605.1.15"
 ]
 
-def check_keyword_serp(keyword: str, domain: str, max_pages: int = 3) -> int:
+def check_keyword_serp(keyword: str, domain: str, max_pages: int = 1) -> int:
     clean_domain = domain.lower().replace("https://", "").replace("http://", "").replace("www.", "").strip("/")
     encoded_kw = urllib.parse.quote_plus(keyword)
 
@@ -24,12 +24,12 @@ def check_keyword_serp(keyword: str, domain: str, max_pages: int = 3) -> int:
         search_url = f"https://www.google.com/search?q={encoded_kw}&num=10&start={start}&hl=fa&gl=ir"
         headers = {
             "User-Agent": USER_AGENTS[page % len(USER_AGENTS)],
-            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
             "Accept-Language": "fa,en-US;q=0.9,en;q=0.8",
         }
 
         try:
-            resp = requests.get(search_url, headers=headers, timeout=8)
+            resp = requests.get(search_url, headers=headers, timeout=2.0)
             if resp.status_code == 200:
                 soup = BeautifulSoup(resp.text, "html.parser")
                 links = soup.find_all("a", href=True)
@@ -46,8 +46,6 @@ def check_keyword_serp(keyword: str, domain: str, max_pages: int = 3) -> int:
                 break
         except Exception:
             break
-
-        time.sleep(1)
 
     return position
 

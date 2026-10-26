@@ -1,0 +1,140 @@
+{% extends "base.html" %}
+
+{% block title %}هوش مصنوعی سئوکار (SEO Copilot) | SEO Command Center{% endblock %}
+{% block page_heading %}هوش مصنوعی سئوکار و استراتژیست ارشد (SEO Copilot & Strategist){% endblock %}
+
+{% block content %}
+<div class="row g-4 mb-4">
+    <!-- Header Hero Card -->
+    <div class="col-12">
+        <div class="card card-custom p-4">
+            <div class="row align-items-center">
+                <div class="col-lg-8">
+                    <span class="badge badge-solid-cyan mb-2"><i class="fas fa-brain me-1"></i>تحلیل خودکار توسط موتور هوش مصنوعی سئو</span>
+                    <h2 class="h4 fw-bold text-white mb-2">استراتژیست هوشمند سئو: {{ current_site.name }} ({{ current_site.domain }})</h2>
+                    <p class="text-white-50 mb-3" style="font-size: 0.95rem; line-height: 1.8;">
+                        این سیستم مانند یک مدیر ارشد سئو، کلمات در آستانه ورود به صفحه اول، صفحات نیازمند بهبود نرخ کلیک (CTR) و محله‌های فتح‌نشده در شهر {{ current_site.city }} را استخراج کرده و برنامه عملیاتی روزانه ارائه می‌دهد.
+                    </p>
+                    <div class="d-flex gap-2 flex-wrap">
+                        <form action="/api/autopilot/run-now" method="POST" class="d-inline">
+                            <input type="hidden" name="site_id" value="{{ current_site.id }}">
+                            <button type="submit" class="btn btn-emerald btn-sm">
+                                <i class="fas fa-arrows-rotate me-1"></i>تحلیل و استخراج مجدد استراتژی
+                            </button>
+                        </form>
+                        <a href="/reports" class="btn btn-outline-contrast-light btn-sm">
+                            <i class="fas fa-file-invoice me-1"></i>مشاهده در گزارش مدیریتی
+                        </a>
+                    </div>
+                </div>
+
+                <div class="col-lg-4 text-center mt-3 mt-lg-0">
+                    <div class="p-3 rounded-4" style="background-color: #0b111f; border: 1.5px solid #2f456e;">
+                        <span class="text-white-50 small fw-bold">امتیاز اقتدار و قدرت سئو</span>
+                        <div class="my-2">
+                            <span class="display-4 fw-bold text-info">{{ copilot_data.seo_authority_score }}</span>
+                            <span class="text-white-50 fs-5">/۱۰۰</span>
+                        </div>
+                        <span class="badge badge-solid-emerald"><i class="fas fa-arrow-trend-up me-1"></i>پتانسیل رشد بالا در {{ current_site.city }}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Section 1: Quick Wins (Page 2 Keywords Ready to Jump to Page 1) -->
+    <div class="col-12">
+        <div class="card card-custom p-4">
+            <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+                <div>
+                    <h2 class="h5 fw-bold text-white mb-1"><i class="fas fa-rocket text-warning me-2"></i>فرصت‌های طلایی صعود فوری (Quick Wins - رتبه‌های ۱۱ تا ۲۰)</h2>
+                    <span class="text-white-50 small">کلماتی که با اصلاحات کوچک در متن و تگ عنوان، طی ۱۰ الی ۱۵ روز به صفحه اول صعود می‌کنند</span>
+                </div>
+                <span class="badge badge-solid-amber">{{ copilot_data.quick_wins|length }} کلمه در آستانه صفحه اول</span>
+            </div>
+
+            <div class="row g-3">
+                {% for qw in copilot_data.quick_wins %}
+                <div class="col-lg-6">
+                    <div class="p-3 rounded-3 h-100" style="background-color: #090e1a; border: 1.5px solid #243552;">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <h3 class="h6 fw-bold text-white mb-0">{{ qw.action_title }}</h3>
+                            <span class="badge badge-solid-cyan text-nowrap">رتبه فعلی: {{ qw.current_position }}</span>
+                        </div>
+                        <p class="text-white-50 small mb-3" style="line-height: 1.7;">{{ qw.recommendation }}</p>
+                        
+                        <div class="p-2 rounded bg-dark border border-secondary mb-3">
+                            <small class="text-warning d-block fw-bold mb-1">پیشنهاد عنوان جذاب (Title Tag):</small>
+                            <span class="font-monospace text-white small">{{ qw.title_suggestion }}</span>
+                        </div>
+
+                        <div class="d-flex justify-content-between align-items-center small">
+                            <span class="text-white-50"><i class="fas fa-gauge-high me-1"></i>سختی: {{ qw.difficulty }}</span>
+                            <a href="https://www.google.com/search?q={{ qw.keyword }}" target="_blank" class="text-info text-decoration-none">
+                                تست در گوگل <i class="fas fa-arrow-up-right-from-square small"></i>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Section 2: CTR Booster -->
+    <div class="col-lg-6">
+        <div class="card card-custom p-4 h-100">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h2 class="h5 fw-bold text-white mb-0"><i class="fas fa-bullseye text-danger me-2"></i>بهینه‌ساز نرخ کلیک سرپ (CTR Booster)</h2>
+                <span class="badge badge-solid-emerald">افزایش ورودی بدون تغییر رتبه</span>
+            </div>
+            <p class="text-white-50 small mb-3">کلمات صفحه اول که رتبه خوبی دارند اما با تایتل‌های روانشناختی و قلاب‌دار می‌توان کلیک آن‌ها را ۲ برابر کرد:</p>
+
+            <div class="list-group list-group-flush">
+                {% for ctr in copilot_data.ctr_opportunities %}
+                <div class="list-group-item bg-transparent text-white border-secondary p-3 mb-2 rounded-3 border" style="background-color: #090e1a !important;">
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <span class="fw-bold text-white">{{ ctr.keyword }} (رتبه {{ ctr.rank }})</span>
+                        <span class="badge badge-solid-emerald small">{{ ctr.expected_boost }}</span>
+                    </div>
+                    <div class="mt-2">
+                        <small class="text-white-50 d-block">عنوان بهینه‌شده پیشنهادی:</small>
+                        <span class="text-info fw-bold small">{{ ctr.optimized_title }}</span>
+                    </div>
+                    <div class="mt-2">
+                        <small class="text-white-50 d-block">متادیسکریپشن کلیک‌خور:</small>
+                        <small class="text-white-50 font-monospace">{{ ctr.optimized_description }}</small>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Section 3: Local Domination Roadmap -->
+    <div class="col-lg-6">
+        <div class="card card-custom p-4 h-100">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h2 class="h5 fw-bold text-white mb-0"><i class="fas fa-map-location-dot text-info me-2"></i>سلطه بر محله‌های پردرآمد {{ current_site.city }}</h2>
+                <span class="badge badge-solid-cyan">توسعه لندینگ محلی</span>
+            </div>
+            <p class="text-white-50 small mb-3">مناطقی که تقاضای بالایی دارند اما هنوز لندینگ اختصاصی برای آنها ساخته نشده است:</p>
+
+            <div class="list-group list-group-flush">
+                {% for gap in copilot_data.content_gaps %}
+                <div class="list-group-item bg-transparent text-white border-secondary p-3 mb-2 rounded-3 border" style="background-color: #090e1a !important;">
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <span class="fw-bold text-white"><i class="fas fa-location-pin text-danger me-1"></i>محله {{ gap.neighborhood }}</span>
+                        <span class="badge bg-dark border text-warning small">{{ gap.intent }}</span>
+                    </div>
+                    <p class="text-white-50 small mb-2">{{ gap.action }}</p>
+                    <a href="/content-generator?site_id={{ current_site.id }}&brand={{ gap.neighborhood }}" class="btn btn-sm btn-outline-contrast-cyan py-1 px-3">
+                        <i class="fas fa-wand-magic-sparkles me-1"></i>تولید آنی محتوای این محله
+                    </a>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

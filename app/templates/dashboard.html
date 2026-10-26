@@ -62,30 +62,57 @@
     </div>
 </div>
 
-<!-- Intro Project Banner Card -->
-<div class="card card-custom p-4 mb-4 border border-secondary">
-    <div class="row align-items-center">
-        <div class="col-lg-8">
-            <span class="badge badge-solid-cyan mb-2">سیستم جامع اتوماسیون سئو</span>
-            <h2 class="h4 fw-bold text-white mb-2">مدیریت متمرکز پروژه‌ها و کلاینت‌ها</h2>
-            <p class="mb-4" style="color: #f1f5f9 !important; font-size: 1.05rem; line-height: 1.8; font-weight: 500;">
-                این پنل به شما اجازه می‌دهد رتبه دامنه‌های شخصی و مشتریان را روی کلمات هدف رصد کنید، با یک کلیک صفحات جدید را به موتورهای جستجو ایندکس فوری بفرستید، و با هوش مصنوعی مقالات بومی با کد اسکیما تولید و مستقیماً منتشر نمایید.
-            </p>
-            <div class="d-flex flex-wrap gap-2">
-                <a href="/sites" class="btn btn-emerald"><i class="fas fa-plus me-1"></i>افزودن سایت جدید</a>
-                <a href="/rank-tracker" class="btn btn-outline-contrast-light"><i class="fas fa-arrow-trend-up me-1"></i>پایش کلمات کلیدی</a>
-                <a href="/content-generator" class="btn btn-outline-contrast-cyan"><i class="fas fa-wand-magic-sparkles me-1"></i>تولید مقاله با AI</a>
+<!-- SEO Autopilot & Copilot Intelligence Card -->
+<div class="card card-custom p-4 mb-4 border border-secondary" style="background: linear-gradient(135deg, #0b1222 0%, #070c18 100%) !important;">
+    <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+        <div class="d-flex align-items-center gap-3">
+            <div class="stat-icon bg-success bg-opacity-10 text-success fs-3">
+                <i class="fas fa-robot"></i>
+            </div>
+            <div>
+                <div class="d-flex align-items-center gap-2">
+                    <h2 class="h5 fw-bold text-white mb-0">خلبان خودکار سئو (SEO Autopilot & Copilot)</h2>
+                    <span class="badge badge-solid-emerald"><i class="fas fa-circle-check me-1"></i>فعال و هوشمند</span>
+                </div>
+                <small class="text-white-50">{{ autopilot_status.last_run.summary }}</small>
             </div>
         </div>
-        <div class="col-lg-4 text-center d-none d-lg-block">
-            <img src="/static/images/intro-banner.png" alt="SEO Command Center" class="img-fluid rounded-4 shadow border" style="border-color: #223250 !important; max-height: 180px;">
+        <div class="d-flex gap-2">
+            <form action="/api/autopilot/run-now" method="POST">
+                <button type="submit" class="btn btn-emerald btn-sm fw-bold">
+                    <i class="fas fa-play me-1"></i>اجرای فوری چرخه کامل
+                </button>
+            </form>
+            <a href="/copilot" class="btn btn-outline-contrast-cyan btn-sm">
+                <i class="fas fa-brain me-1"></i>مشاهده استراتژیست Copilot
+            </a>
         </div>
     </div>
+
+    <!-- Quick Wins Snippet -->
+    {% if copilot_insights and copilot_insights.quick_wins %}
+    <div class="pt-3 border-top border-secondary">
+        <span class="fw-bold text-warning small mb-2 d-block"><i class="fas fa-bolt me-1"></i>توصیه‌های فوری هوش مصنوعی برای صعود به صفحه اول (Quick Wins):</span>
+        <div class="row g-2">
+            {% for qw in copilot_insights.quick_wins[:3] %}
+            <div class="col-md-4">
+                <div class="p-2 rounded-3 bg-dark border border-secondary h-100">
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <strong class="text-white small">{{ qw.keyword }}</strong>
+                        <span class="badge badge-solid-cyan" style="font-size: 0.7rem;">رتبه {{ qw.current_position }} (صفحه ۲)</span>
+                    </div>
+                    <small class="text-white-50 d-block text-truncate" style="font-size: 0.78rem;">{{ qw.recommendation }}</small>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
 </div>
 
 <!-- Websites Summary Table -->
 <div class="card card-custom p-4 mb-4">
-    <div class="d-flex justify-content-between align-items-center mb-3">
+    <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
         <div>
             <h2 class="h5 fw-bold text-white mb-1">لیست وب‌سایت‌های تحت پوشش</h2>
             <span class="text-white-50 small">مشاهده وضعیت کلی، امتیاز فنی و دسترسی سریع به ابزارها</span>
@@ -143,12 +170,12 @@
 
 <!-- Keywords Performance Preview -->
 <div class="card card-custom p-4">
-    <div class="d-flex justify-content-between align-items-center mb-3">
+    <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
         <div>
             <h2 class="h5 fw-bold text-white mb-1">آخرین موقعیت کلمات کلیدی (نمونه تبریز تی‌وی)</h2>
-            <span class="text-white-50 small">وضعیت جایگاه در نتایج گوگل و بهترین رتبه ثبت‌شده</span>
+            <span class="text-white-50 small">وضعیت جایگاه در نتایج گوگل و تفکیک صفحه ۱ و صفحه ۲</span>
         </div>
-        <a href="/rank-tracker" class="btn btn-sm btn-outline-contrast-cyan">مشاهده تمام کلمات</a>
+        <a href="/rank-tracker" class="btn btn-sm btn-outline-contrast-cyan">مشاهده تمام کلمات در SERP Tracker</a>
     </div>
 
     <div class="table-responsive">
@@ -157,7 +184,7 @@
                 <tr>
                     <th>کلمه کلیدی</th>
                     <th>سایت مربوطه</th>
-                    <th>رتبه فعلی در گوگل</th>
+                    <th>جایگاه در صفحات گوگل</th>
                     <th>بهترین رتبه</th>
                     <th>وضعیت</th>
                     <th>بروزرسانی</th>
@@ -170,23 +197,23 @@
                     <td><span class="text-white-50">{{ kw.domain }}</span></td>
                     <td>
                         {% if kw.current_position > 0 and kw.current_position <= 10 %}
-                            <span class="badge badge-solid-emerald">صفحه ۱ (رتبه {{ kw.current_position }})</span>
+                            <span class="badge badge-solid-emerald">صفحه ۱ گوگل (رتبه {{ kw.current_position }})</span>
                         {% elif kw.current_position > 10 and kw.current_position <= 20 %}
-                            <span class="badge badge-solid-cyan">صفحه ۲ (رتبه {{ kw.current_position }})</span>
+                            <span class="badge badge-solid-cyan">صفحه ۲ گوگل (رتبه {{ kw.current_position }})</span>
                         {% elif kw.current_position > 20 %}
-                            <span class="badge badge-solid-amber">رتبه {{ kw.current_position }}</span>
+                            <span class="badge badge-solid-amber">صفحه ۳ گوگل (رتبه {{ kw.current_position }})</span>
                         {% else %}
-                            <span class="badge bg-dark border text-white">در حال بازیابی</span>
+                            <span class="badge bg-dark border text-white-50">در انتظار رصد</span>
                         {% endif %}
                     </td>
                     <td>
-                        <span class="text-info fw-bold">#{{ kw.best_position or '-' }}</span>
+                        <span class="text-info fw-bold font-monospace">#{{ kw.best_position or '-' }}</span>
                     </td>
                     <td>
                         {% if kw.current_position > 0 and kw.current_position <= 10 %}
                             <span class="text-success small fw-bold"><i class="fas fa-circle-up me-1"></i>موقعیت طلایی</span>
                         {% else %}
-                            <span class="text-warning small fw-bold"><i class="fas fa-clock me-1"></i>نیاز به محتوا</span>
+                            <span class="text-warning small fw-bold"><i class="fas fa-clock me-1"></i>فرصت صعود فوری</span>
                         {% endif %}
                     </td>
                     <td><small class="text-white-50">{{ kw.last_checked_at or 'به‌تازگی' }}</small></td>

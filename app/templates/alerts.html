@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+
+{% block title %}مرکز هشدارهای هوشمند سئو | SEO Command Center{% endblock %}
+{% block page_heading %}مرکز پایش و هشدارهای هوشمند سئو (Smart Alerts){% endblock %}
+
+{% block content %}
+<div class="row g-4 mb-4">
+    <!-- Header Summary & Telegram Config Box -->
+    <div class="col-12">
+        <div class="card card-custom p-4">
+            <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-3">
+                <div>
+                    <h2 class="h5 fw-bold text-white mb-1"><i class="fas fa-bell text-danger me-2"></i>هشدارهای خودکار سیستم و افت رتبه</h2>
+                    <p class="text-white-50 small mb-0">اعلان‌های فوری در صورت سقوط رتبه از صفحه اول، خطای ۵۰۰ سرور، انقضای SSL یا کشف فرصت‌های طلایی هوش مصنوعی.</p>
+                </div>
+                <div class="d-flex gap-2">
+                    <form action="/api/alerts/mark-read" method="POST">
+                        <button type="submit" class="btn btn-outline-contrast-light btn-sm">
+                            <i class="fas fa-check-double me-1"></i>خواندن همه اعلان‌ها
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Telegram / Alert Dispatcher Configuration Form -->
+            <div class="p-3 rounded-3 mt-2" style="background-color: #0b111f; border: 1.5px dashed #2f456e;">
+                <h3 class="h6 fw-bold text-white mb-2"><i class="fab fa-telegram text-info me-2"></i>تنظیمات اتصال به ربات تلگرام برای ارسال فوری هشدارها</h3>
+                <form action="/api/sites/{{ current_site.id }}/update-telegram" method="POST" class="row g-3 align-items-end">
+                    <div class="col-md-5">
+                        <label class="form-label small fw-bold text-white">توکن ربات تلگرام (Telegram Bot Token)</label>
+                        <input type="text" name="telegram_bot_token" class="form-control font-monospace form-control-sm" placeholder="123456789:ABCdefGHIjklMNO..." value="{{ current_site.telegram_bot_token or '' }}">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small fw-bold text-white">شناسه چت یا کانال (Telegram Chat ID)</label>
+                        <input type="text" name="telegram_chat_id" class="form-control font-monospace form-control-sm" placeholder="123456789 یا -100123456789" value="{{ current_site.telegram_chat_id or '' }}">
+                    </div>
+                    <div class="col-md-3 d-flex gap-2">
+                        <button type="submit" class="btn btn-cyan btn-sm flex-grow-1">
+                            <i class="fas fa-save me-1"></i>ذخیره
+                        </button>
+                        <button type="submit" formaction="/api/alerts/test-telegram" class="btn btn-outline-contrast-cyan btn-sm text-nowrap">
+                            <i class="fas fa-paper-plane me-1"></i>تست ارسال
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Alerts Feed -->
+    <div class="col-12">
+        <div class="card card-custom p-4">
+            <h2 class="h5 fw-bold text-white mb-3">تاریخچه اعلان‌های هوشمند سیستم ({{ alerts|length }})</h2>
+
+            {% if alerts %}
+                <div class="list-group list-group-flush">
+                    {% for a in alerts %}
+                    <div class="list-group-item bg-transparent text-white border-secondary p-3 mb-2 rounded-3 border" style="background-color: #090e1a !important;">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <span class="fw-bold text-white">
+                                {% if a.level == 'critical' %}
+                                    <i class="fas fa-circle-exclamation text-danger me-2"></i>
+                                {% elif a.level == 'warning' %}
+                                    <i class="fas fa-triangle-exclamation text-warning me-2"></i>
+                                {% else %}
+                                    <i class="fas fa-circle-info text-info me-2"></i>
+                                {% endif %}
+                                {{ a.title }}
+                            </span>
+                            <span class="badge {% if a.level == 'critical' %}badge-solid-rose{% elif a.level == 'warning' %}badge-solid-amber{% else %}badge-solid-cyan{% endif %}">
+                                {{ a.category }}
+                            </span>
+                        </div>
+                        <p class="text-white-50 small mb-2">{{ a.message }}</p>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="badge bg-dark border text-white-50 small">{{ a.domain or current_site.domain }}</span>
+                            <small class="text-white-50">{{ a.created_at }}</small>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="text-center py-5 text-white-50">
+                    <i class="fas fa-shield-check text-success fs-1 mb-2"></i>
+                    <p class="mb-0">تمامی وضعیت‌ها نرمال است و هیچ هشدار بحرانی ثبت نشده است.</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

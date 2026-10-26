@@ -1,8 +1,12 @@
 import pytest
 import io
+import os
 from fastapi.testclient import TestClient
 from app.main import app
 from app.database import init_db, get_connection
+from app.services.seo_copilot import SEOCopilot
+from app.services.alert_service import AlertService
+from app.services.cms_publisher import CMSPublisher
 
 @pytest.fixture(scope="session", autouse=True)
 def setup_test_db():
@@ -15,6 +19,24 @@ def test_dashboard_page():
     assert response.status_code == 200
     assert "SEO Command" in response.text
     assert "داشبورد اجرایی" in response.text
+    assert "خلبان خودکار" in response.text
+
+def test_copilot_page():
+    response = client.get("/copilot")
+    assert response.status_code == 200
+    assert "هوش مصنوعی سئوکار" in response.text
+    assert "Quick Wins" in response.text
+
+def test_reports_page():
+    response = client.get("/reports")
+    assert response.status_code == 200
+    assert "گزارش جامع سئو" in response.text
+    assert "چاپ رسمی" in response.text
+
+def test_alerts_page():
+    response = client.get("/alerts")
+    assert response.status_code == 200
+    assert "مرکز پایش و هشدارهای هوشمند" in response.text
 
 def test_sites_page():
     response = client.get("/sites")
@@ -32,6 +54,7 @@ def test_source_doctor_page():
     response = client.get("/source-doctor?project_path=F:\\Projects\\TabrizTv")
     assert response.status_code == 200
     assert "پزشک سورس‌کد" in response.text
+    assert "FTP" in response.text
 
 def test_update_site_path_api():
     conn = get_connection()
@@ -116,3 +139,22 @@ def test_submit_indexing_api():
     }, follow_redirects=True)
     assert response.status_code == 200
     assert "test-page-1" in response.text
+
+def test_autopilot_run_now_api():
+    response = client.post("/api/autopilot/run-now", data={"site_id": 1}, follow_redirects=True)
+    assert response.status_code == 200
+
+def test_seo_copilot_service():
+    copilot = SEOCopilot(1)
+    analysis = copilot.generate_full_analysis()
+    assert "seo_authority_score" in analysis
+    assert "quick_wins" in analysis
+    assert "ctr_opportunities" in analysis
+    assert "content_gaps" in analysis
+
+def test_alert_service():
+    res = AlertService.notify(1, "info", "test", "تست اعلان", "متن پیام تست")
+    assert res["recorded"] is True
+    unread = AlertService.get_unread_alerts(limit=5)
+    assert any(a["title"] == "تست اعلان" for a in unread)
+    AlertService.mark_all_as_read(1)

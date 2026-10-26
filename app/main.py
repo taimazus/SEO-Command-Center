@@ -13,16 +13,24 @@ from app.services.ai_content import generate_seo_article
 from app.services.indexer_service import submit_urls_for_indexing, fetch_sitemap_urls
 from app.services.source_doctor import SourceDoctor
 from app.services.gsc_service import GSCService, CREDENTIALS_FILE
+from app.services.ftp_deployer import FTPDeployer
+from app.services.seo_copilot import SEOCopilot
+from app.services.alert_service import AlertService
+from app.services.cms_publisher import CMSPublisher
+from app.services.report_generator import ReportGenerator
+from app.services.scheduler import start_background_scheduler, stop_background_scheduler, run_autopilot_cycle, get_autopilot_status
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     init_db()
+    start_background_scheduler(interval_hours=12)
     yield
+    stop_background_scheduler()
 
 app = FastAPI(
     title="SEO Command Center",
-    description="Multi-Tenant SEO Management, Source Doctor, SERP Rank Tracking & AI Content Autopilot",
-    version="2.1.0",
+    description="Multi-Tenant Autonomous SEO Specialist, Source Doctor, SERP Rank Tracking & Copilot",
+    version="2.2.0",
     lifespan=lifespan
 )
 
@@ -36,7 +44,7 @@ templates = Jinja2Templates(directory=TEMPLATES_DIR)
 def get_site_context(request: Request, explicit_site_id: Optional[int] = None):
     """
     Resolves the global active site from cookie or query param, falling back to the first site.
-    Returns: (all_sites, current_site, active_id)
+    Returns: (all_sites, current_site, active_id, unread_alerts_count)
     """
     conn = get_connection()
     all_sites = conn.execute("SELECT * FROM sites ORDER BY id ASC").fetchall()
@@ -53,14 +61,19 @@ def get_site_context(request: Request, explicit_site_id: Optional[int] = None):
         active_id = all_sites[0]["id"]
     
     current_site = site_map.get(active_id) if active_id else None
+    
+    # Query unread alerts count
+    unread_alerts = conn.execute("SELECT COUNT(*) AS c FROM system_alerts WHERE is_read = 0").fetchone()
+    unread_alerts_count = unread_alerts["c"] if unread_alerts else 0
+    
     conn.close()
-    return all_sites, current_site, active_id
+    return all_sites, current_site, active_id, unread_alerts_count
 
 # ----------------- WEB PAGES -----------------
 
 @app.get("/", response_class=HTMLResponse)
 def read_dashboard(request: Request):
-    all_sites, current_site, active_id = get_site_context(request)
+    all_sites, current_site, active_id, unread_alerts_count = get_site_context(request)
     conn = get_connection()
     sites = conn.execute("""
         SELECT s.*, COUNT(k.id) AS keyword_count
@@ -84,8 +97,12 @@ def read_dashboard(request: Request):
 
     recent_audit = conn.execute("SELECT AVG(overall_score) as avg_score FROM health_audits").fetchone()
     avg_health_score = int(recent_audit["avg_score"] or 95)
-
     conn.close()
+
+    # Copilot Insights & Autopilot status for dashboard
+    copilot = SEOCopilot(active_id or 1)
+    copilot_insights = copilot.generate_full_analysis()
+    autopilot_status = get_autopilot_status()
 
     stats = {
         "total_sites": total_sites,
@@ -102,15 +119,90 @@ def read_dashboard(request: Request):
             "all_sites": all_sites,
             "current_site": current_site,
             "active_site_id": active_id,
+            "unread_alerts_count": unread_alerts_count,
             "stats": stats,
             "sites": sites,
-            "top_keywords": keywords
+            "top_keywords": keywords,
+            "copilot_insights": copilot_insights,
+            "autopilot_status": autopilot_status
+        }
+    )
+
+@app.get("/copilot", response_class=HTMLResponse)
+def copilot_page(request: Request, site_id: Optional[int] = None):
+    all_sites, current_site, active_id, unread_alerts_count = get_site_context(request, site_id)
+    copilot = SEOCopilot(active_id or 1)
+    copilot_data = copilot.generate_full_analysis()
+
+    return templates.TemplateResponse(
+        request=request,
+        name="seo_copilot.html",
+        context={
+            "active_page": "copilot",
+            "all_sites": all_sites,
+            "current_site": current_site,
+            "selected_site_id": active_id,
+            "unread_alerts_count": unread_alerts_count,
+            "copilot_data": copilot_data
+        }
+    )
+
+@app.get("/reports", response_class=HTMLResponse)
+def reports_page(request: Request, site_id: Optional[int] = None):
+    all_sites, current_site, active_id, unread_alerts_count = get_site_context(request, site_id)
+    generator = ReportGenerator(active_id or 1)
+    report_data = generator.build_report_data()
+
+    return templates.TemplateResponse(
+        request=request,
+        name="report_detail.html",
+        context={
+            "active_page": "reports",
+            "all_sites": all_sites,
+            "current_site": current_site,
+            "selected_site_id": active_id,
+            "unread_alerts_count": unread_alerts_count,
+            "report": report_data
+        }
+    )
+
+@app.get("/alerts", response_class=HTMLResponse)
+def alerts_page(request: Request, site_id: Optional[int] = None):
+    all_sites, current_site, active_id, unread_alerts_count = get_site_context(request, site_id)
+    conn = get_connection()
+    if active_id:
+        alerts = conn.execute("""
+            SELECT a.*, s.domain, s.name as site_name
+            FROM system_alerts a
+            LEFT JOIN sites s ON s.id = a.site_id
+            WHERE a.site_id = ?
+            ORDER BY a.id DESC LIMIT 30
+        """, (active_id,)).fetchall()
+    else:
+        alerts = conn.execute("""
+            SELECT a.*, s.domain, s.name as site_name
+            FROM system_alerts a
+            LEFT JOIN sites s ON s.id = a.site_id
+            ORDER BY a.id DESC LIMIT 30
+        """).fetchall()
+    conn.close()
+
+    return templates.TemplateResponse(
+        request=request,
+        name="alerts.html",
+        context={
+            "active_page": "alerts",
+            "all_sites": all_sites,
+            "current_site": current_site,
+            "selected_site_id": active_id,
+            "unread_alerts_count": unread_alerts_count,
+            "alerts": [dict(a) for a in alerts]
         }
     )
 
 @app.get("/sites", response_class=HTMLResponse)
 def list_sites_page(request: Request):
-    all_sites, current_site, active_id = get_site_context(request)
+    all_sites, current_site, active_id, unread_alerts_count = get_site_context(request)
     conn = get_connection()
     sites = conn.execute("""
         SELECT s.*, COUNT(k.id) AS keyword_count
@@ -129,13 +221,14 @@ def list_sites_page(request: Request):
             "all_sites": all_sites,
             "current_site": current_site,
             "active_site_id": active_id,
+            "unread_alerts_count": unread_alerts_count,
             "sites": sites
         }
     )
 
 @app.get("/sites/{site_id}", response_class=HTMLResponse)
 def site_detail_page(request: Request, site_id: int):
-    all_sites, current_site, active_id = get_site_context(request, site_id)
+    all_sites, current_site, active_id, unread_alerts_count = get_site_context(request, site_id)
     conn = get_connection()
     site = conn.execute("SELECT * FROM sites WHERE id = ?", (site_id,)).fetchone()
     if not site:
@@ -153,6 +246,7 @@ def site_detail_page(request: Request, site_id: int):
             "all_sites": all_sites,
             "current_site": current_site,
             "active_site_id": active_id,
+            "unread_alerts_count": unread_alerts_count,
             "site": site,
             "keywords": keywords
         }
@@ -160,7 +254,7 @@ def site_detail_page(request: Request, site_id: int):
 
 @app.get("/rank-tracker", response_class=HTMLResponse)
 def rank_tracker_page(request: Request, site_id: Optional[int] = None):
-    all_sites, current_site, active_id = get_site_context(request, site_id)
+    all_sites, current_site, active_id, unread_alerts_count = get_site_context(request, site_id)
     conn = get_connection()
 
     if active_id:
@@ -196,6 +290,7 @@ def rank_tracker_page(request: Request, site_id: Optional[int] = None):
             "sites": all_sites,
             "keywords": keywords,
             "selected_site_id": active_id,
+            "unread_alerts_count": unread_alerts_count,
             "chart_data": {
                 "top_10": top_10,
                 "top_20": top_20,
@@ -206,8 +301,14 @@ def rank_tracker_page(request: Request, site_id: Optional[int] = None):
     )
 
 @app.get("/source-doctor", response_class=HTMLResponse)
-def source_doctor_page(request: Request, site_id: Optional[int] = None, project_path: Optional[str] = None):
-    all_sites, current_site, active_id = get_site_context(request, site_id)
+def source_doctor_page(
+    request: Request,
+    site_id: Optional[int] = None,
+    project_path: Optional[str] = None,
+    ftp_message: Optional[str] = None,
+    ftp_success: Optional[int] = None
+):
+    all_sites, current_site, active_id, unread_alerts_count = get_site_context(request, site_id)
     
     target_path = project_path
     if not target_path and current_site:
@@ -239,13 +340,16 @@ def source_doctor_page(request: Request, site_id: Optional[int] = None, project_
             "selected_site_id": active_id,
             "project_path": target_path,
             "scan_result": scan_result,
-            "manifest_data": manifest_data
+            "manifest_data": manifest_data,
+            "unread_alerts_count": unread_alerts_count,
+            "ftp_message": ftp_message,
+            "ftp_success": bool(ftp_success) if ftp_success is not None else None
         }
     )
 
 @app.get("/gsc-integration", response_class=HTMLResponse)
 def gsc_integration_page(request: Request, site_id: Optional[int] = None, imported: Optional[int] = None):
-    all_sites, current_site, active_id = get_site_context(request, site_id)
+    all_sites, current_site, active_id, unread_alerts_count = get_site_context(request, site_id)
     gsc_service = GSCService()
     gsc_data = gsc_service.get_performance_summary(site_id=active_id or 1)
 
@@ -258,13 +362,14 @@ def gsc_integration_page(request: Request, site_id: Optional[int] = None, import
             "current_site": current_site,
             "selected_site_id": active_id,
             "gsc_data": gsc_data,
-            "just_imported": bool(imported)
+            "just_imported": bool(imported),
+            "unread_alerts_count": unread_alerts_count
         }
     )
 
 @app.get("/content-generator", response_class=HTMLResponse)
 def content_generator_page(request: Request, site_id: Optional[int] = None):
-    all_sites, current_site, active_id = get_site_context(request, site_id)
+    all_sites, current_site, active_id, unread_alerts_count = get_site_context(request, site_id)
     conn = get_connection()
     articles = conn.execute("SELECT * FROM articles ORDER BY id DESC LIMIT 10").fetchall()
     conn.close()
@@ -278,13 +383,14 @@ def content_generator_page(request: Request, site_id: Optional[int] = None):
             "current_site": current_site,
             "sites": all_sites,
             "articles": articles,
-            "selected_site_id": active_id
+            "selected_site_id": active_id,
+            "unread_alerts_count": unread_alerts_count
         }
     )
 
 @app.get("/indexer", response_class=HTMLResponse)
 def indexer_page(request: Request):
-    all_sites, current_site, active_id = get_site_context(request)
+    all_sites, current_site, active_id, unread_alerts_count = get_site_context(request)
     conn = get_connection()
     logs = conn.execute("SELECT * FROM indexing_logs ORDER BY id DESC LIMIT 20").fetchall()
     conn.close()
@@ -298,13 +404,14 @@ def indexer_page(request: Request):
             "current_site": current_site,
             "sites": all_sites,
             "selected_site_id": active_id,
-            "logs": logs
+            "logs": logs,
+            "unread_alerts_count": unread_alerts_count
         }
     )
 
 @app.get("/health-audit", response_class=HTMLResponse)
 def health_audit_page(request: Request, site_id: Optional[int] = None):
-    all_sites, current_site, active_id = get_site_context(request, site_id)
+    all_sites, current_site, active_id, unread_alerts_count = get_site_context(request, site_id)
     conn = get_connection()
 
     audit = None
@@ -335,11 +442,128 @@ def health_audit_page(request: Request, site_id: Optional[int] = None):
             "current_site": current_site,
             "sites": all_sites,
             "audit": audit,
-            "selected_site_id": active_id
+            "selected_site_id": active_id,
+            "unread_alerts_count": unread_alerts_count
         }
     )
 
-# ----------------- FORM ACTIONS & API -----------------
+# ----------------- AUTONOMOUS ACTION APIS -----------------
+
+@app.post("/api/autopilot/run-now")
+def autopilot_run_now_action(site_id: Optional[int] = Form(None)):
+    run_autopilot_cycle(site_id)
+    target = f"/copilot?site_id={site_id}" if site_id else "/"
+    return RedirectResponse(target, status_code=303)
+
+@app.post("/api/alerts/mark-read")
+def mark_alerts_read_action():
+    AlertService.mark_all_as_read()
+    return RedirectResponse("/alerts", status_code=303)
+
+@app.post("/api/alerts/test-telegram")
+def test_telegram_action(telegram_bot_token: str = Form(...), telegram_chat_id: str = Form(...)):
+    sent = AlertService.send_telegram(
+        telegram_bot_token,
+        telegram_chat_id,
+        "🔔 *پیام آزمایشی مرکز فرماندهی سئو*\n\nاتصال بات تلگرام با موفقیت تایید شد. هشدارهای رصد رتبه‌ها و سلامت سایت به این گفتگو ارسال خواهند شد."
+    )
+    return RedirectResponse("/alerts", status_code=303)
+
+@app.post("/api/sites/{site_id}/update-telegram")
+def update_telegram_action(site_id: int, telegram_bot_token: str = Form(""), telegram_chat_id: str = Form("")):
+    conn = get_connection()
+    conn.execute("UPDATE sites SET telegram_bot_token = ?, telegram_chat_id = ? WHERE id = ?", (telegram_bot_token.strip(), telegram_chat_id.strip(), site_id))
+    conn.commit()
+    conn.close()
+    return RedirectResponse("/alerts", status_code=303)
+
+@app.post("/api/sites/{site_id}/update-ftp")
+def update_site_ftp_action(
+    site_id: int,
+    ftp_host: str = Form(...),
+    ftp_port: int = Form(21),
+    ftp_user: str = Form(...),
+    ftp_pass: str = Form(...),
+    ftp_root: str = Form("/httpdocs")
+):
+    conn = get_connection()
+    conn.execute("""
+        UPDATE sites SET ftp_host = ?, ftp_port = ?, ftp_user = ?, ftp_pass = ?, ftp_root = ?
+        WHERE id = ?
+    """, (ftp_host.strip(), ftp_port, ftp_user.strip(), ftp_pass.strip(), ftp_root.strip(), site_id))
+    conn.commit()
+    conn.close()
+    return RedirectResponse(f"/source-doctor?site_id={site_id}", status_code=303)
+
+@app.post("/api/sites/{site_id}/test-ftp")
+def test_site_ftp_action(
+    site_id: int,
+    ftp_host: str = Form(...),
+    ftp_port: int = Form(21),
+    ftp_user: str = Form(...),
+    ftp_pass: str = Form(...),
+    ftp_root: str = Form("/httpdocs")
+):
+    deployer = FTPDeployer(ftp_host, ftp_port, ftp_user, ftp_pass, ftp_root)
+    result = deployer.test_connection()
+    msg = result["message"]
+    success_flag = 1 if result["success"] else 0
+    return RedirectResponse(f"/source-doctor?site_id={site_id}&ftp_message={msg}&ftp_success={success_flag}", status_code=303)
+
+@app.post("/api/source-doctor/deploy-ftp")
+def deploy_ftp_action(project_path: str = Form(...), site_id: int = Form(...)):
+    conn = get_connection()
+    site = conn.execute("SELECT * FROM sites WHERE id = ?", (site_id,)).fetchone()
+    conn.close()
+
+    if not site or not site["ftp_host"] or not site["ftp_user"]:
+        return RedirectResponse(f"/source-doctor?site_id={site_id}&ftp_message=اطلاعات+FTP+هاست+تنظیم+نشده+است&ftp_success=0", status_code=303)
+
+    doctor = SourceDoctor(project_path)
+    manifest = doctor.generate_publish_manifest(days_modified=14)
+    
+    deployer = FTPDeployer(site["ftp_host"], site["ftp_port"] or 21, site["ftp_user"], site["ftp_pass"], site["ftp_root"] or "/httpdocs")
+    res = deployer.deploy_manifest_files(project_path, manifest["manifest"])
+
+    msg = res["message"]
+    success_flag = 1 if res["success"] else 0
+    return RedirectResponse(f"/source-doctor?site_id={site_id}&ftp_message={msg}&ftp_success={success_flag}", status_code=303)
+
+@app.post("/api/sites/{site_id}/update-wp")
+def update_site_wp_action(
+    site_id: int,
+    wp_api_url: str = Form(""),
+    wp_user: str = Form(""),
+    wp_app_pass: str = Form("")
+):
+    conn = get_connection()
+    conn.execute("""
+        UPDATE sites SET wp_api_url = ?, wp_user = ?, wp_app_pass = ?
+        WHERE id = ?
+    """, (wp_api_url.strip(), wp_user.strip(), wp_app_pass.strip(), site_id))
+    conn.commit()
+    conn.close()
+    return RedirectResponse(f"/content-generator?site_id={site_id}", status_code=303)
+
+@app.post("/api/articles/{article_id}/publish-wp")
+def publish_article_wp_action(article_id: int):
+    conn = get_connection()
+    art = conn.execute("SELECT * FROM articles WHERE id = ?", (article_id,)).fetchone()
+    conn.close()
+    if art:
+        pub = CMSPublisher(art["site_id"])
+        pub.publish_to_wordpress(art["title"], art["content_html"], status="draft")
+    return RedirectResponse(f"/content-generator?site_id={art['site_id']}", status_code=303)
+
+@app.post("/api/articles/{article_id}/publish-local")
+def publish_article_local_action(article_id: int):
+    conn = get_connection()
+    art = conn.execute("SELECT * FROM articles WHERE id = ?", (article_id,)).fetchone()
+    conn.close()
+    if art:
+        pub = CMSPublisher(art["site_id"])
+        pub.publish_to_local_project(art["title"], art["slug"], art["content_html"])
+    return RedirectResponse(f"/content-generator?site_id={art['site_id']}", status_code=303)
 
 @app.post("/api/sites/{site_id}/update-path")
 def update_site_path_action(site_id: int, project_path: str = Form(...)):

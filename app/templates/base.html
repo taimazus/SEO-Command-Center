@@ -13,7 +13,7 @@
     <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
     <!-- Centralized Design System & WCAG AA Stylesheet -->
-    <link rel="stylesheet" href="/static/css/theme.css?v=3.1">
+    <link rel="stylesheet" href="/static/css/theme.css?v=3.2">
     {% block extra_css %}{% endblock %}
 </head>
 <body>
@@ -25,7 +25,7 @@
             </div>
             <div>
                 <div class="fw-bold fs-5 text-white">SEO Command</div>
-                <small class="text-white-50" style="font-size: 0.75rem;">نسخه Enterprise ۲.۱</small>
+                <small class="text-white-50" style="font-size: 0.75rem;">دستیار هوشمند سئو Enterprise</small>
             </div>
         </a>
 
@@ -35,6 +35,9 @@
             <a href="/" class="nav-link {% if active_page == 'dashboard' %}active{% endif %}">
                 <i class="fas fa-chart-pie"></i> داشبورد اجرایی
             </a>
+            <a href="/copilot" class="nav-link {% if active_page == 'copilot' %}active{% endif %}">
+                <i class="fas fa-brain text-info"></i> هوش مصنوعی سئوکار (Copilot)
+            </a>
             <a href="/sites" class="nav-link {% if active_page == 'sites' %}active{% endif %}">
                 <i class="fas fa-network-wired"></i> مدیریت وب‌سایت‌ها
             </a>
@@ -42,7 +45,7 @@
                 <i class="fas fa-chart-line"></i> رصد زنده کلمات (SERP)
             </a>
             <a href="/source-doctor" class="nav-link {% if active_page == 'doctor' %}active{% endif %}">
-                <i class="fas fa-user-doctor text-warning"></i> پزشک سورس‌کد و انتشار
+                <i class="fas fa-user-doctor text-warning"></i> پزشک سورس‌کد و FTP
             </a>
             <a href="/gsc-integration" class="nav-link {% if active_page == 'gsc' %}active{% endif %}">
                 <i class="fab fa-google text-danger"></i> کنسول گوگل و مپ
@@ -56,12 +59,18 @@
             <a href="/health-audit" class="nav-link {% if active_page == 'audit' %}active{% endif %}">
                 <i class="fas fa-shield-heart text-primary"></i> پایش فنی ۳۰۱/SSL
             </a>
+            <a href="/reports" class="nav-link {% if active_page == 'reports' %}active{% endif %}">
+                <i class="fas fa-file-invoice text-warning"></i> گزارش مدیریتی کارفرما
+            </a>
+            <a href="/alerts" class="nav-link {% if active_page == 'alerts' %}active{% endif %}">
+                <i class="fas fa-bell text-danger"></i> مرکز هشدارهای سئو
+            </a>
         </div>
 
         <div class="position-absolute bottom-0 w-100 p-3 border-top" style="border-color: var(--border-subtle) !important;">
             <div class="d-flex align-items-center justify-content-between small">
-                <span class="text-white">توسعه برای Taimazus</span>
-                <span class="badge badge-solid-emerald">فعال و آماده</span>
+                <span class="text-white">خلبان خودکار سئو</span>
+                <span class="badge badge-solid-emerald"><i class="fas fa-circle-check me-1"></i>فعال و هوشمند</span>
             </div>
         </div>
     </aside>
@@ -77,11 +86,29 @@
                 <h1 class="h4 mb-0 fw-bold text-white">{% block page_heading %}داشبورد مرکزی سئو{% endblock %}</h1>
             </div>
 
-            <!-- Global Active Project Selector -->
+            <!-- Global Active Project Selector & Tools -->
             <div class="d-flex align-items-center gap-3 flex-wrap">
+                <!-- Autopilot Fast Trigger -->
+                <form action="/api/autopilot/run-now" method="POST" class="d-inline">
+                    <button type="submit" class="btn btn-sm btn-outline-success rounded-pill px-3 fw-bold" title="اجرای فوری چرخه کامل خلبان خودکار (SERP، سلامت، سایت‌مپ و کوپایلوت)">
+                        <i class="fas fa-robot me-1"></i>اجرای خلبان خودکار
+                    </button>
+                </form>
+
+                <!-- Alerts Bell -->
+                <a href="/alerts" class="btn btn-sm btn-outline-secondary rounded-pill position-relative px-3" title="مشاهده هشدارهای هوشمند">
+                    <i class="fas fa-bell text-warning"></i>
+                    {% if unread_alerts_count and unread_alerts_count > 0 %}
+                    <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="font-size: 0.65rem;">
+                        {{ unread_alerts_count }}
+                    </span>
+                    {% endif %}
+                </a>
+
+                <!-- Global Project Selector Pill -->
                 <div class="global-project-pill">
                     <i class="fas fa-globe text-info small"></i>
-                    <span class="text-white-50 small fw-bold">پروژه فعال:</span>
+                    <span class="text-white-50 small fw-bold">پروژه:</span>
                     <select id="globalSiteSelect" class="global-project-select">
                         {% if all_sites %}
                             {% for s in all_sites %}
@@ -96,8 +123,8 @@
                 </div>
 
                 <div class="d-flex align-items-center gap-2">
-                    <a href="/source-doctor" class="btn btn-sm btn-outline-warning rounded-pill px-3 fw-bold">
-                        <i class="fas fa-stethoscope me-1"></i>پزشک سورس‌کد
+                    <a href="/reports" class="btn btn-sm btn-outline-warning rounded-pill px-3 fw-bold">
+                        <i class="fas fa-file-pdf me-1"></i>گزارش PDF
                     </a>
                     <a href="https://github.com/taimazus/SEO-Command-Center" target="_blank" class="btn btn-sm btn-outline-light rounded-pill px-3">
                         <i class="fab fa-github me-1"></i>گیت‌هاب
@@ -119,10 +146,8 @@
         // Global Project Selector persistence via Cookie & Navigation
         document.getElementById('globalSiteSelect')?.addEventListener('change', function() {
             const siteId = this.value;
-            // Set cookie for 1 year
             document.cookie = "active_site_id=" + siteId + "; path=/; max-age=31536000; SameSite=Lax";
             
-            // If the current URL has site_id query parameter, update it; otherwise reload
             const url = new URL(window.location.href);
             if (url.searchParams.has('site_id')) {
                 url.searchParams.set('site_id', siteId);
@@ -131,12 +156,6 @@
                 window.location.reload();
             }
         });
-
-        // Global helper to switch active site programmatically
-        function setActiveSite(siteId) {
-            document.cookie = "active_site_id=" + siteId + "; path=/; max-age=31536000; SameSite=Lax";
-            window.location.reload();
-        }
     </script>
     {% block extra_js %}{% endblock %}
 </body>
