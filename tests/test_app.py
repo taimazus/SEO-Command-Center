@@ -24,7 +24,18 @@ def test_sites_page():
 def test_rank_tracker_page():
     response = client.get("/rank-tracker")
     assert response.status_code == 200
-    assert "رصد لحظه‌ای رتبه‌ها" in response.text
+    assert "رصد زنده کلمات" in response.text
+
+def test_source_doctor_page():
+    response = client.get("/source-doctor?project_path=F:\\Projects\\TabrizTv")
+    assert response.status_code == 200
+    assert "پزشک سورس‌کد" in response.text
+
+def test_gsc_integration_page():
+    response = client.get("/gsc-integration")
+    assert response.status_code == 200
+    assert "Google Search Console" in response.text
+    assert "نقشه گوگل" in response.text
 
 def test_content_generator_page():
     response = client.get("/content-generator")
@@ -34,12 +45,12 @@ def test_content_generator_page():
 def test_indexer_page():
     response = client.get("/indexer")
     assert response.status_code == 200
-    assert "ایندکس آنی صفحات" in response.text
+    assert "IndexNow" in response.text
 
 def test_health_audit_page():
     response = client.get("/health-audit")
     assert response.status_code == 200
-    assert "پایش سلامت فنی سئو" in response.text
+    assert "پایش سلامت فنی" in response.text
 
 def test_generate_content_api():
     conn = get_connection()

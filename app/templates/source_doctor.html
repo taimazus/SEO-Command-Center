@@ -1,0 +1,184 @@
+{% extends "base.html" %}
+
+{% block title %}پزشک سورس‌کد و دستیار انتشار | SEO Command Center{% endblock %}
+{% block page_heading %}پزشک سورس‌کد، رفع ایرادات و تولید پکیج پابلیش (Source Doctor){% endblock %}
+
+{% block content %}
+<div class="row g-4 mb-4">
+    <!-- Path Selector & Scanner Card -->
+    <div class="col-12">
+        <div class="card card-custom p-4">
+            <h2 class="h5 fw-bold text-white mb-2"><i class="fas fa-stethoscope text-warning me-2"></i>بازرسی هوشمند سورس‌کد محلی و عیب‌یابی سئو</h2>
+            <p class="text-white-50 small mb-3">آدرس پوشه پروژه را در کامپیوتر وارد کنید تا فایل‌های Web.config، مسترپیج‌ها، صفحات اصلی و تداخل‌های پوشه App_Code به صورت عمیق بررسی شوند.</p>
+
+            <form action="/source-doctor" method="GET" class="row g-3 align-items-center">
+                <div class="col-lg-8">
+                    <label class="form-label small fw-bold text-white">آدرس کامل پوشه پروژه روی سیستم *</label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-dark border-secondary text-white-50"><i class="fas fa-folder-open"></i></span>
+                        <input type="text" name="project_path" class="form-control font-monospace" placeholder="F:\Projects\TabrizTv" value="{{ project_path }}" required>
+                    </div>
+                </div>
+                <div class="col-lg-4 d-flex gap-2 align-items-end mt-4">
+                    <button type="submit" class="btn btn-emerald flex-grow-1">
+                        <i class="fas fa-magnifying-glass me-1"></i>اسکن عمیق سورس‌کد
+                    </button>
+                    {% if scan_result and scan_result.success %}
+                    <form action="/api/source-doctor/auto-fix" method="POST" class="d-inline">
+                        <input type="hidden" name="project_path" value="{{ project_path }}">
+                        <button type="submit" class="btn btn-cyan" onclick="return confirm('اصلاحات خودکار با ایجاد نسخه پشتیبان اعمال شود؟');">
+                            <i class="fas fa-magic me-1"></i>رفع خودکار
+                        </button>
+                    </form>
+                    {% endif %}
+                </div>
+            </form>
+        </div>
+    </div>
+
+    {% if scan_result %}
+        {% if scan_result.success %}
+        <!-- Health Score & Framework Overview -->
+        <div class="col-lg-4">
+            <div class="card card-custom p-4 text-center">
+                <span class="text-white-50 small fw-bold text-uppercase">امتیاز سلامت کدنویسی سئو</span>
+                <div class="my-3">
+                    <span class="display-3 fw-bold {% if scan_result.score >= 80 %}text-success{% elif scan_result.score >= 50 %}text-warning{% else %}text-danger{% endif %}">
+                        {{ scan_result.score }}
+                    </span>
+                    <span class="text-white-50 fs-4">/۱۰۰</span>
+                </div>
+                <div>
+                    <span class="badge badge-solid-cyan px-3 py-2">
+                        <i class="fas fa-code me-1"></i>فریمورک: {{ scan_result.framework }}
+                    </span>
+                </div>
+
+                <hr class="border-secondary my-4">
+
+                <div class="text-start">
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="text-white-50 small">تعداد ایرادات شناسایی شده:</span>
+                        <strong class="{% if scan_result.total_issues == 0 %}text-success{% else %}text-danger{% endif %}">
+                            {{ scan_result.total_issues }} مورد
+                        </strong>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="text-white-50 small">مسیر پروژه:</span>
+                        <span class="font-monospace text-truncate text-info small" style="max-width: 170px;">
+                            {{ scan_result.project_path }}
+                        </span>
+                    </div>
+                </div>
+
+                <div class="mt-4">
+                    <form action="/api/source-doctor/export-zip" method="POST">
+                        <input type="hidden" name="project_path" value="{{ project_path }}">
+                        <button type="submit" class="btn btn-warning w-100 fw-bold">
+                            <i class="fas fa-file-zipper me-1"></i>تولید فایل ZIP آماده پابلیش
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Issues List -->
+        <div class="col-lg-8">
+            <div class="card card-custom p-4">
+                <h2 class="h5 fw-bold text-white mb-3">گزارش و چک‌لیست عیب‌یابی سورس‌کد</h2>
+
+                {% if scan_result.issues %}
+                    <div class="list-group list-group-flush">
+                        {% for issue in scan_result.issues %}
+                        <div class="list-group-item bg-transparent text-white border-secondary p-3 mb-2 rounded-3 border" style="background-color: #0b101c !important;">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <span class="fw-bold text-white">
+                                    <i class="fas fa-triangle-exclamation {% if issue.severity == 'critical' %}text-danger{% elif issue.severity == 'high' %}text-warning{% else %}text-info{% endif %} me-2"></i>
+                                    {{ issue.title }}
+                                </span>
+                                {% if issue.severity == 'critical' %}
+                                    <span class="badge badge-solid-rose">بحرانی (Server Error)</span>
+                                {% elif issue.severity == 'high' %}
+                                    <span class="badge badge-solid-amber">اولویت بالا</span>
+                                {% else %}
+                                    <span class="badge badge-solid-cyan">متوسط</span>
+                                {% endif %}
+                            </div>
+                            <p class="text-white-50 small mb-2">{{ issue.description }}</p>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span class="font-monospace text-info small"><i class="fas fa-file-code me-1"></i>{{ issue.file }}</span>
+                                <span class="badge bg-dark border text-white-50 small">{{ issue.category }}</span>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="alert alert-success bg-success bg-opacity-10 border border-success text-success p-3 rounded-3">
+                        <i class="fas fa-check-circle me-1"></i>هیچ ایراد ساختاری در سورس‌کد این پروژه شناسایی نشد. آماده انتشار روی هاست است!
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Deployment Manifest: Where to upload which files! -->
+        {% if manifest_data and manifest_data.manifest %}
+        <div class="col-12 mt-4">
+            <div class="card card-custom p-4">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div>
+                        <h2 class="h5 fw-bold text-white mb-1"><i class="fas fa-cloud-arrow-up text-primary me-2"></i>راهنمای دقیق آپلود فایل‌ها روی هاست (Deployment Manifest)</h2>
+                        <span class="text-white-50 small">فایل‌های تغییر یافته اخیر و مسیرهای دقیق آپلود در هاست پلسک / سی‌پنل</span>
+                    </div>
+                    <span class="badge badge-solid-emerald">{{ manifest_data.total_files }} فایل تغییریافته ({{ manifest_data.total_size_kb }} KB)</span>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="table table-custom align-middle">
+                        <thead>
+                            <tr>
+                                <th>نام فایل</th>
+                                <th>مسیر نسبی در پروژه</th>
+                                <th>مسیر دقیق آپلود در هاست پلسک</th>
+                                <th>حجم</th>
+                                <th>آخرین تغییر</th>
+                                <th>وضعیت و نکات ایمنی</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in manifest_data.manifest %}
+                            <tr>
+                                <td class="fw-bold text-white">{{ item.file_name }}</td>
+                                <td><code class="text-info">{{ item.rel_path }}</code></td>
+                                <td>
+                                    <span class="badge bg-dark border text-warning font-monospace p-2">
+                                        {{ item.target_dir }}
+                                    </span>
+                                </td>
+                                <td><small class="text-white-50">{{ item.size_kb }} KB</small></td>
+                                <td><small class="text-white-50">{{ item.modified_at }}</small></td>
+                                <td>
+                                    {% if item.warning %}
+                                        <span class="badge badge-solid-rose">{{ item.warning }}</span>
+                                    {% else %}
+                                        <span class="text-success small"><i class="fas fa-check me-1"></i>آماده جایگزینی</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        {% else %}
+        <div class="col-12">
+            <div class="alert alert-danger bg-danger bg-opacity-10 border border-danger text-danger p-3 rounded-3">
+                <i class="fas fa-circle-exclamation me-1"></i>{{ scan_result.error }}
+            </div>
+        </div>
+        {% endif %}
+    {% endif %}
+</div>
+{% endblock %}

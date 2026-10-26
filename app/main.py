@@ -2,7 +2,7 @@ import os
 from contextlib import asynccontextmanager
 from typing import Optional, List
 from fastapi import FastAPI, Request, Form, HTTPException
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, RedirectResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
@@ -11,6 +11,8 @@ from app.services.rank_tracker import update_keyword_rank, update_all_site_ranks
 from app.services.health_auditor import audit_site_health
 from app.services.ai_content import generate_seo_article
 from app.services.indexer_service import submit_urls_for_indexing, fetch_sitemap_urls
+from app.services.source_doctor import SourceDoctor
+from app.services.gsc_service import GSCService
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -19,8 +21,8 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     title="SEO Command Center",
-    description="Multi-Tenant SEO Management, SERP Rank Tracking & AI Content Autopilot",
-    version="2.0.0",
+    description="Multi-Tenant SEO Management, Source Doctor, SERP Rank Tracking & AI Content Autopilot",
+    version="2.1.0",
     lifespan=lifespan
 )
 
@@ -166,6 +168,41 @@ def rank_tracker_page(request: Request, site_id: Optional[int] = None):
         }
     )
 
+@app.get("/source-doctor", response_class=HTMLResponse)
+def source_doctor_page(request: Request, project_path: Optional[str] = "F:\\Projects\\TabrizTv"):
+    scan_result = None
+    manifest_data = None
+    if project_path:
+        doctor = SourceDoctor(project_path)
+        scan_result = doctor.analyze()
+        if scan_result["success"]:
+            manifest_data = doctor.generate_publish_manifest(days_modified=14)
+
+    return templates.TemplateResponse(
+        request=request,
+        name="source_doctor.html",
+        context={
+            "active_page": "doctor",
+            "project_path": project_path,
+            "scan_result": scan_result,
+            "manifest_data": manifest_data
+        }
+    )
+
+@app.get("/gsc-integration", response_class=HTMLResponse)
+def gsc_integration_page(request: Request, site_id: Optional[int] = 1):
+    gsc_service = GSCService()
+    gsc_data = gsc_service.get_performance_summary(site_id=site_id or 1)
+
+    return templates.TemplateResponse(
+        request=request,
+        name="gsc_integration.html",
+        context={
+            "active_page": "gsc",
+            "gsc_data": gsc_data
+        }
+    )
+
 @app.get("/content-generator", response_class=HTMLResponse)
 def content_generator_page(request: Request, site_id: Optional[int] = None):
     conn = get_connection()
@@ -238,6 +275,22 @@ def health_audit_page(request: Request, site_id: Optional[int] = None):
     )
 
 # ----------------- FORM ACTIONS & API -----------------
+
+@app.post("/api/source-doctor/auto-fix")
+def source_doctor_autofix_action(project_path: str = Form(...)):
+    doctor = SourceDoctor(project_path)
+    doctor.auto_fix()
+    return RedirectResponse(f"/source-doctor?project_path={project_path}", status_code=303)
+
+@app.post("/api/source-doctor/export-zip")
+def source_doctor_export_zip_action(project_path: str = Form(...)):
+    doctor = SourceDoctor(project_path)
+    zip_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data", "exports")
+    zip_path = os.path.join(zip_dir, "TabrizTv_Publish_Package.zip")
+    doctor.create_publish_zip(zip_path, days_modified=14)
+    if os.path.exists(zip_path):
+        return FileResponse(zip_path, filename="Publish_Package.zip", media_type="application/zip")
+    return RedirectResponse(f"/source-doctor?project_path={project_path}", status_code=303)
 
 @app.post("/api/sites")
 def create_site_action(
