@@ -73,10 +73,6 @@ def update_keyword_rank(keyword_id: int) -> Dict[str, Any]:
         # If rate-limited or not found, keep prev_pos or record 0
         new_pos = prev_pos
 
-    # If first time and no position, compute default realistic baseline
-    if new_pos == 0 and "تبریز" in keyword:
-        new_pos = 12
-
     new_best = new_pos if (best_pos == 0 or (new_pos > 0 and new_pos < best_pos)) else best_pos
     now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 

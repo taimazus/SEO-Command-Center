@@ -362,9 +362,11 @@ def source_doctor_page(
     )
 
 @app.get("/gsc-integration", response_class=HTMLResponse)
-def gsc_integration_page(request: Request, site_id: Optional[int] = None, imported: Optional[int] = None):
+def gsc_integration_page(request: Request, site_id: Optional[int] = None, imported: Optional[int] = None, connected: Optional[int] = None, tested: Optional[int] = None):
     all_sites, current_site, active_id, unread_alerts_count = get_site_context(request, site_id)
     gsc_service = GSCService()
+    target_domain = current_site["domain"] if current_site else ""
+    connection_test = gsc_service.test_connection(target_domain)
     gsc_data = gsc_service.get_performance_summary(site_id=active_id or 1)
 
     return templates.TemplateResponse(
@@ -376,7 +378,10 @@ def gsc_integration_page(request: Request, site_id: Optional[int] = None, import
             "current_site": current_site,
             "selected_site_id": active_id,
             "gsc_data": gsc_data,
+            "connection_test": connection_test,
             "just_imported": bool(imported),
+            "just_connected": bool(connected),
+            "just_tested": bool(tested),
             "unread_alerts_count": unread_alerts_count
         }
     )
@@ -603,7 +608,23 @@ async def upload_gsc_credentials_action(credentials_file: UploadFile = File(...)
     content = await credentials_file.read()
     with open(CREDENTIALS_FILE, "wb") as f:
         f.write(content)
+    gsc_service = GSCService()
+    conn = get_connection()
+    site = conn.execute("SELECT domain FROM sites WHERE id = ?", (site_id,)).fetchone()
+    conn.close()
+    if site:
+        gsc_service.fetch_live_api_data(site_id, site["domain"])
     return RedirectResponse(f"/gsc-integration?site_id={site_id}&connected=1", status_code=303)
+
+@app.post("/api/gsc/test-connection")
+def test_gsc_connection_action(site_id: int = Form(...)):
+    gsc_service = GSCService()
+    conn = get_connection()
+    site = conn.execute("SELECT domain FROM sites WHERE id = ?", (site_id,)).fetchone()
+    conn.close()
+    if site:
+        gsc_service.fetch_live_api_data(site_id, site["domain"])
+    return RedirectResponse(f"/gsc-integration?site_id={site_id}&tested=1", status_code=303)
 
 @app.post("/api/source-doctor/auto-fix")
 def source_doctor_autofix_action(project_path: str = Form(...)):

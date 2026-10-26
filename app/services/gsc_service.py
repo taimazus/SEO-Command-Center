@@ -76,55 +76,166 @@ class GSCService:
             "message": f"{len(imported_queries)} کلمه کلیدی واقعی از خروجی کنسول گوگل با موفقیت ثبت شد."
         }
 
-    def fetch_live_api_data(self, site_id: int, site_url: str) -> Optional[List[Dict[str, Any]]]:
-        """
-        Attempts real Google Search Console API fetch using Service Account credentials.
-        """
+    def get_service_account_info(self) -> Optional[Dict[str, Any]]:
         if not os.path.exists(self.credentials_path):
             return None
+        try:
+            with open(self.credentials_path, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception:
+            return None
 
+    def get_authenticated_headers(self) -> Optional[Dict[str, str]]:
+        if not os.path.exists(self.credentials_path):
+            return None
         try:
             from google.oauth2 import service_account
-            from googleapiclient.discovery import build
+            import google.auth.transport.requests
 
             SCOPES = ['https://www.googleapis.com/auth/webmasters.readonly']
             creds = service_account.Credentials.from_service_account_file(self.credentials_path, scopes=SCOPES)
-            service = build('searchconsole', 'v1', credentials=creds)
+            req = google.auth.transport.requests.Request()
+            creds.refresh(req)
+            return {
+                "Authorization": f"Bearer {creds.token}",
+                "Content-Type": "application/json"
+            }
+        except Exception as e:
+            return None
 
-            end_date = datetime.now().strftime("%Y-%m-%d")
-            start_date = (datetime.now() - timedelta(days=28)).strftime("%Y-%m-%d")
-
-            request_body = {
-                'startDate': start_date,
-                'endDate': end_date,
-                'dimensions': ['query'],
-                'rowLimit': 50
+    def test_connection(self, site_domain: str = "") -> Dict[str, Any]:
+        info = self.get_service_account_info()
+        if not info:
+            return {
+                "success": False,
+                "is_configured": False,
+                "client_email": "",
+                "message": "فایل کلید JSON حساب سرویس گوگل هنوز بارگذاری نشده است."
             }
 
-            response = service.searchanalytics().query(siteUrl=site_url, body=request_body).execute()
-            rows = response.get('rows', [])
+        client_email = info.get("client_email", "")
+        project_id = info.get("project_id", "")
 
-            imported_queries = []
-            conn = get_connection()
-            for r in rows:
-                q = r['keys'][0]
-                clicks = int(r.get('clicks', 0))
-                impressions = int(r.get('impressions', 0))
-                ctr = round(float(r.get('ctr', 0)) * 100, 2)
-                pos = round(float(r.get('position', 0)), 1)
-                imported_queries.append((site_id, q, clicks, impressions, ctr, pos))
+        headers = self.get_authenticated_headers()
+        if not headers:
+            return {
+                "success": False,
+                "is_configured": True,
+                "project_id": project_id,
+                "client_email": client_email,
+                "message": "احراز هویت با فایل کلید گوگل انجام نشد. اتصال اینترنت یا فایل کلید را بررسی نمایید."
+            }
 
-            if imported_queries:
-                conn.execute("DELETE FROM gsc_queries WHERE site_id = ?", (site_id,))
-                conn.executemany("""
-                    INSERT INTO gsc_queries (site_id, query, clicks, impressions, ctr, position)
-                    VALUES (?, ?, ?, ?, ?, ?)
-                """, imported_queries)
-                conn.commit()
-            conn.close()
-            return imported_queries
-        except Exception:
+        try:
+            import requests
+            r = requests.get("https://www.googleapis.com/webmasters/v3/sites", headers=headers, timeout=10)
+            if r.status_code == 200:
+                data = r.json()
+                accessible_sites = [s.get("siteUrl", "") for s in data.get("siteEntry", [])]
+                
+                clean_domain = site_domain.lower().replace("https://", "").replace("http://", "").strip("/")
+                matched_site = ""
+                for s in accessible_sites:
+                    if clean_domain in s.lower():
+                        matched_site = s
+                        break
+
+                if matched_site:
+                    return {
+                        "success": True,
+                        "is_configured": True,
+                        "has_permission": True,
+                        "project_id": project_id,
+                        "client_email": client_email,
+                        "accessible_sites": accessible_sites,
+                        "message": f"اتصال سرچ کنسول کاملاً برقرار است! دسترسی به سایت {matched_site} با موفقیت تایید شد."
+                    }
+                else:
+                    return {
+                        "success": False,
+                        "is_configured": True,
+                        "has_permission": False,
+                        "project_id": project_id,
+                        "client_email": client_email,
+                        "accessible_sites": accessible_sites,
+                        "message": f"کلید گوگل معتبر است، اما ایمیل سرویس ({client_email}) هنوز به عنوان کاربر در Google Search Console برای دامنه {site_domain} اضافه نشده است."
+                    }
+            else:
+                return {
+                    "success": False,
+                    "is_configured": True,
+                    "project_id": project_id,
+                    "client_email": client_email,
+                    "message": f"خطا در استعلام از سرور گوگل (کد {r.status_code})"
+                }
+        except Exception as e:
+            return {
+                "success": False,
+                "is_configured": True,
+                "client_email": client_email,
+                "message": f"خطا در ارسال درخواست به سرور گوگل: {str(e)}"
+            }
+
+    def fetch_live_api_data(self, site_id: int, site_domain: str) -> Optional[List[Dict[str, Any]]]:
+        """
+        Attempts real Google Search Console API fetch using Service Account credentials via REST.
+        """
+        headers = self.get_authenticated_headers()
+        if not headers:
             return None
+
+        clean_domain = site_domain.lower().replace("https://", "").replace("http://", "").strip("/")
+        candidate_urls = [
+            f"https://{clean_domain}/",
+            f"sc-domain:{clean_domain}",
+            f"http://{clean_domain}/"
+        ]
+
+        import urllib.parse
+        import requests
+        from datetime import datetime, timedelta
+
+        end_date = datetime.now().strftime("%Y-%m-%d")
+        start_date = (datetime.now() - timedelta(days=28)).strftime("%Y-%m-%d")
+
+        for site_url in candidate_urls:
+            encoded_url = urllib.parse.quote(site_url, safe='')
+            api_endpoint = f"https://www.googleapis.com/webmasters/v3/sites/{encoded_url}/searchAnalytics/query"
+            payload = {
+                "startDate": start_date,
+                "endDate": end_date,
+                "dimensions": ["query"],
+                "rowLimit": 50
+            }
+
+            try:
+                r = requests.post(api_endpoint, headers=headers, json=payload, timeout=12)
+                if r.status_code == 200:
+                    rows = r.json().get("rows", [])
+                    imported_queries = []
+                    conn = get_connection()
+                    for item in rows:
+                        q = item.get("keys", [""])[0]
+                        clicks = int(item.get("clicks", 0))
+                        impressions = int(item.get("impressions", 0))
+                        ctr = round(float(item.get("ctr", 0)) * 100, 2)
+                        pos = round(float(item.get("position", 0)), 1)
+                        if q:
+                            imported_queries.append((site_id, q, clicks, impressions, ctr, pos))
+
+                    if imported_queries:
+                        conn.execute("DELETE FROM gsc_queries WHERE site_id = ?", (site_id,))
+                        conn.executemany("""
+                            INSERT INTO gsc_queries (site_id, query, clicks, impressions, ctr, position)
+                            VALUES (?, ?, ?, ?, ?, ?)
+                        """, imported_queries)
+                        conn.commit()
+                    conn.close()
+                    return imported_queries
+            except Exception:
+                continue
+
+        return None
 
     def get_performance_summary(self, site_id: int, days: int = 28) -> Dict[str, Any]:
         conn = get_connection()

@@ -82,6 +82,54 @@
             </div>
             {% endif %}
 
+            <!-- Service Account Live Status Card -->
+            {% if connection_test and connection_test.is_configured %}
+            <div class="mt-3 p-3 rounded-3 border {% if connection_test.has_permission %}border-success bg-success bg-opacity-10{% else %}border-warning bg-warning bg-opacity-10{% endif %}">
+                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
+                    <div class="d-flex align-items-center gap-2">
+                        <i class="fas {% if connection_test.has_permission %}fa-circle-check text-success{% else %}fa-triangle-exclamation text-warning{% endif %} fs-5"></i>
+                        <strong class="text-white">وضعیت اتصال کلید Google Cloud:</strong>
+                        <span class="badge {% if connection_test.has_permission %}badge-solid-emerald{% else %}badge-solid-amber{% endif %}">
+                            {{ 'متصل و دارای دسترسی کامل' if connection_test.has_permission else 'نیاز به افزودن ایمیل در سرچ کنسول' }}
+                        </span>
+                    </div>
+                    <form action="/api/gsc/test-connection" method="POST" class="d-inline">
+                        <input type="hidden" name="site_id" value="{{ selected_site_id }}">
+                        <button type="submit" class="btn btn-sm btn-outline-info">
+                            <i class="fas fa-rotate me-1"></i>تست اتصال و همگام‌سازی زنده API
+                        </button>
+                    </form>
+                </div>
+
+                <div class="p-2 rounded bg-black bg-opacity-50 font-monospace small mb-2 d-flex justify-content-between align-items-center flex-wrap gap-2">
+                    <span>
+                        <span class="text-white-50">ایمیل حساب سرویس گوگل: </span>
+                        <strong class="text-info select-all" id="serviceEmailText">{{ connection_test.client_email }}</strong>
+                    </span>
+                    <button type="button" class="btn btn-xs btn-outline-light py-0 px-2" onclick="navigator.clipboard.writeText('{{ connection_test.client_email }}'); alert('ایمیل سرویس در کلیپ‌بورد کپی شد!');">
+                        <i class="fas fa-copy me-1"></i>کپی ایمیل
+                    </button>
+                </div>
+
+                <p class="small text-white mb-1">
+                    {{ connection_test.message }}
+                </p>
+
+                {% if not connection_test.has_permission %}
+                <div class="small text-white-50 mt-2 pt-2 border-top border-secondary">
+                    <strong class="text-white">راهنمای فعال‌سازی نهایی (کمتر از ۱ دقیقه):</strong>
+                    <ol class="mb-0 ps-3 mt-1">
+                        <li>ایمیل آبی‌رنگ بالا را کپی کنید.</li>
+                        <li>وارد پنل <a href="https://search.google.com/search-console" target="_blank" class="text-info fw-bold">Google Search Console</a> سایت خود شوید.</li>
+                        <li>از منوی کناری به مسیر <b>Settings (تنظیمات)</b> ⬅️ <b>Users and permissions (کاربران و دسترسی‌ها)</b> بروید.</li>
+                        <li>دکمه <b>Add user (افزودن کاربر)</b> را زده، این ایمیل را وارد کرده و Permission را روی <b>Full</b> بگذارید.</li>
+                        <li>سپس دکمه بالا (<b>«تست اتصال و همگام‌سازی زنده API»</b>) را بزنید تا اطلاعات واقعی فوراً دریافت شوند.</li>
+                    </ol>
+                </div>
+                {% endif %}
+            </div>
+            {% endif %}
+
             {% if not gsc_data.has_real_data %}
             <div class="alert alert-warning bg-warning bg-opacity-10 border border-warning text-warning p-3 rounded-3 mt-3 mb-0">
                 <i class="fas fa-triangle-exclamation me-2"></i>
