@@ -86,15 +86,28 @@ class SEOCopilot:
                 })
 
         # 4. Technical Priorities
-        if recent_audit:
-            issues = json.loads(recent_audit["issues_json"] or "[]")
-            for iss in issues:
-                tech_priorities.append({
-                    "title": iss.get("title", "اصلاح فنی"),
-                    "severity": iss.get("severity", "medium"),
-                    "description": iss.get("description", ""),
-                    "solution": "با مراجعه به بخش «پزشک سورس‌کد»، دکمه رفع خودکار را کلیک کنید یا تنظیمات هاست پلسک را بازبینی نمایید."
-                })
+        if recent_audit and recent_audit["issues_json"]:
+            try:
+                raw_issues = json.loads(recent_audit["issues_json"])
+                for iss in raw_issues:
+                    if isinstance(iss, dict):
+                        t = iss.get("title", "اصلاح فنی")
+                        s = iss.get("severity", "medium")
+                        d = iss.get("description", "")
+                    else:
+                        t = str(iss)
+                        s = "critical" if any(w in str(iss) for w in ["SSL", "500", "وضعیت"]) else "medium"
+                        d = str(iss)
+
+                    tech_priorities.append({
+                        "title": t,
+                        "severity": s,
+                        "description": d,
+                        "solution": "با مراجعه به بخش «پزشک سورس‌کد»، دکمه رفع خودکار را کلیک کنید یا تنظیمات هاست پلسک را بازبینی نمایید."
+                    })
+            except Exception as e:
+                import logging
+                logging.warning(f"Error parsing issues_json in SEOCopilot: {e}")
 
         # Calculate SEO Authority Score
         total_score = 75

@@ -1,7 +1,8 @@
 import os
+import logging
 from contextlib import asynccontextmanager
 from typing import Optional, List
-from fastapi import FastAPI, Request, Form, HTTPException, UploadFile, File
+from fastapi import FastAPI, Request, Form, HTTPException, UploadFile, File, Response
 from fastapi.responses import HTMLResponse, RedirectResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -69,6 +70,10 @@ def get_site_context(request: Request, explicit_site_id: Optional[int] = None):
     conn.close()
     return all_sites, current_site, active_id, unread_alerts_count
 
+@app.get("/favicon.ico", include_in_schema=False)
+def favicon():
+    return Response(status_code=204)
+
 # ----------------- WEB PAGES -----------------
 
 @app.get("/", response_class=HTMLResponse)
@@ -99,9 +104,14 @@ def read_dashboard(request: Request):
     avg_health_score = int(recent_audit["avg_score"] or 95)
     conn.close()
 
-    # Copilot Insights & Autopilot status for dashboard
-    copilot = SEOCopilot(active_id or 1)
-    copilot_insights = copilot.generate_full_analysis()
+    # Copilot Insights & Autopilot status for dashboard with resilient boundary
+    try:
+        copilot = SEOCopilot(active_id or 1)
+        copilot_insights = copilot.generate_full_analysis()
+    except Exception as e:
+        logging.error(f"Error generating copilot insights on dashboard: {e}")
+        copilot_insights = {"quick_wins": [], "ctr_opportunities": [], "content_gaps": [], "tech_priorities": [], "seo_authority_score": 85}
+
     autopilot_status = get_autopilot_status()
 
     stats = {
@@ -131,8 +141,12 @@ def read_dashboard(request: Request):
 @app.get("/copilot", response_class=HTMLResponse)
 def copilot_page(request: Request, site_id: Optional[int] = None):
     all_sites, current_site, active_id, unread_alerts_count = get_site_context(request, site_id)
-    copilot = SEOCopilot(active_id or 1)
-    copilot_data = copilot.generate_full_analysis()
+    try:
+        copilot = SEOCopilot(active_id or 1)
+        copilot_data = copilot.generate_full_analysis()
+    except Exception as e:
+        logging.error(f"Error generating copilot analysis for site {active_id}: {e}")
+        copilot_data = {"quick_wins": [], "ctr_opportunities": [], "content_gaps": [], "tech_priorities": [], "seo_authority_score": 85}
 
     return templates.TemplateResponse(
         request=request,
