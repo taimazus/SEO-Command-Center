@@ -10,7 +10,7 @@ from fastapi.templating import Jinja2Templates
 from app.database import init_db, get_connection, DB_DIR
 from app.services.rank_tracker import update_keyword_rank, update_all_site_ranks
 from app.services.health_auditor import audit_site_health
-from app.services.ai_content import generate_seo_article
+from app.services.ai_content import generate_seo_article, get_suggested_topics_for_site
 from app.services.indexer_service import submit_urls_for_indexing, fetch_sitemap_urls
 from app.services.source_doctor import SourceDoctor
 from app.services.gsc_service import GSCService, CREDENTIALS_FILE
@@ -385,8 +385,9 @@ def gsc_integration_page(request: Request, site_id: Optional[int] = None, import
 def content_generator_page(request: Request, site_id: Optional[int] = None):
     all_sites, current_site, active_id, unread_alerts_count = get_site_context(request, site_id)
     conn = get_connection()
-    articles = conn.execute("SELECT * FROM articles ORDER BY id DESC LIMIT 10").fetchall()
+    articles = conn.execute("SELECT * FROM articles WHERE site_id = ? ORDER BY id DESC LIMIT 20", (active_id,)).fetchall()
     conn.close()
+    suggested_topics = get_suggested_topics_for_site(active_id)
 
     return templates.TemplateResponse(
         request=request,
@@ -397,6 +398,7 @@ def content_generator_page(request: Request, site_id: Optional[int] = None):
             "current_site": current_site,
             "sites": all_sites,
             "articles": articles,
+            "suggested_topics": suggested_topics,
             "selected_site_id": active_id,
             "unread_alerts_count": unread_alerts_count
         }
@@ -701,11 +703,90 @@ def check_all_ranks_action(site_id: Optional[int] = Form(None)):
 def generate_content_action(
     site_id: int = Form(...),
     topic: str = Form(...),
-    brand: str = Form("سامسونگ"),
-    city: str = Form("تبریز")
+    custom_topic: Optional[str] = Form(None),
+    brand: str = Form(""),
+    city: str = Form("")
 ):
-    generate_seo_article(site_id, topic, brand, city)
+    effective_topic = custom_topic.strip() if topic == "custom" and custom_topic and custom_topic.strip() else topic
+    generate_seo_article(site_id, effective_topic, brand, city)
     return RedirectResponse(f"/content-generator?site_id={site_id}", status_code=303)
+
+@app.post("/api/articles/{article_id}/delete")
+def delete_article_action(article_id: int):
+    conn = get_connection()
+    art = conn.execute("SELECT site_id FROM articles WHERE id = ?", (article_id,)).fetchone()
+    site_id = art["site_id"] if art else 1
+    conn.execute("DELETE FROM articles WHERE id = ?", (article_id,))
+    conn.commit()
+    conn.close()
+    return RedirectResponse(f"/content-generator?site_id={site_id}", status_code=303)
+
+@app.get("/api/utils/browse-folder")
+def browse_folder_api(path: Optional[str] = None):
+    import string
+    drives = []
+    for letter in string.ascii_uppercase:
+        drive_str = f"{letter}:\\"
+        if os.path.exists(drive_str):
+            drives.append({"name": f"درایو ({letter}:)", "path": drive_str})
+            
+    target_path = path.strip() if path and path.strip() else ""
+    if not target_path or not os.path.exists(target_path):
+        return {
+            "current_path": "",
+            "parent_path": "",
+            "drives": drives,
+            "folders": []
+        }
+        
+    norm_path = os.path.abspath(target_path)
+    parent = os.path.dirname(norm_path)
+    if parent == norm_path:
+        parent = ""
+        
+    folders = []
+    try:
+        for entry in os.scandir(norm_path):
+            try:
+                if entry.is_dir() and not entry.name.startswith(".") and not entry.name.startswith("$"):
+                    folders.append({
+                        "name": entry.name,
+                        "path": entry.path
+                    })
+            except (PermissionError, OSError):
+                continue
+    except (PermissionError, OSError) as e:
+        return {
+            "current_path": norm_path,
+            "parent_path": parent,
+            "drives": drives,
+            "folders": [],
+            "error": f"عدم دسترسی به مسیر: {str(e)}"
+        }
+        
+    folders.sort(key=lambda x: x["name"].lower())
+    return {
+        "current_path": norm_path,
+        "parent_path": parent,
+        "drives": drives,
+        "folders": folders
+    }
+
+@app.post("/api/utils/select-folder-dialog")
+def select_folder_dialog_api():
+    selected_path = ""
+    try:
+        import tkinter as tk
+        from tkinter import filedialog
+        root = tk.Tk()
+        root.withdraw()
+        root.attributes("-topmost", True)
+        selected_path = filedialog.askdirectory(title="پوشه سورس پروژه را انتخاب کنید")
+        root.destroy()
+    except Exception as e:
+        logging.error(f"Error opening folder dialog: {e}")
+        
+    return {"success": bool(selected_path), "path": selected_path}
 
 @app.post("/api/submit-indexing")
 def submit_indexing_action(site_id: int = Form(...), urls: str = Form(...)):

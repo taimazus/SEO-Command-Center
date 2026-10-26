@@ -28,6 +28,8 @@ wheels/
 htmlcov/
 data/*.db-journal
 data/*.db
+data/*.json
+*.json
 *.db
 .DS_Store
 Thumbs.db

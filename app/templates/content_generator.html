@@ -16,27 +16,32 @@
             <form action="/api/generate-content" method="POST">
                 <div class="mb-3">
                     <label class="form-label">انتخاب وب‌سایت مقصد *</label>
-                    <select name="site_id" class="form-select" required>
+                    <select name="site_id" id="contentSiteSelect" class="form-select" onchange="location.href='/content-generator?site_id=' + this.value" required>
                         {% for s in all_sites %}
                         <option value="{{ s.id }}" {% if selected_site_id == s.id %}selected{% endif %}>{{ s.name }} ({{ s.domain }})</option>
                         {% endfor %}
                     </select>
                 </div>
                 <div class="mb-3">
-                    <label class="form-label">موضوع تخصصی مقاله *</label>
-                    <select name="topic" class="form-select" required>
-                        <option value="تعمیر بک لایت">تعمیر و تعویض بک‌لایت (قطع تصویر و تاریکی)</option>
-                        <option value="مین برد و پاور">مشکلات مین‌برد و پاور (روشن نشدن و ریست)</option>
-                        <option value="تعمیر پنل آبخورده">تعمیر فلت و پنل آبخورده با دستگاه باندینگ</option>
+                    <label class="form-label">موضوع تخصصی مقاله (پیشنهاد هوشمند سیستم) *</label>
+                    <select name="topic" id="topicSelect" class="form-select" onchange="onTopicChange(this)" required>
+                        {% for top in suggested_topics %}
+                        <option value="{{ top.id }}">{{ top.title }}</option>
+                        {% endfor %}
+                        <option value="custom">✍ موضوع دلخواه و سفارشی...</option>
                     </select>
                 </div>
-                <div class="mb-3">
-                    <label class="form-label">برند هدف یا محله *</label>
-                    <input type="text" name="brand" class="form-control" placeholder="سامسونگ، ال‌جی، سونی، ولیعصر، رشدیه..." value="{{ request.query_params.get('brand', 'سامسونگ') }}" required>
+                <div class="mb-3" id="customTopicRow" style="display: none;">
+                    <label class="form-label small text-info">عنوان موضوع سفارشی شما *</label>
+                    <input type="text" name="custom_topic" id="customTopicInput" class="form-control" placeholder="عنوان مقاله، مشکل یا سوال مورد نظر خود را بنویسید...">
                 </div>
                 <div class="mb-3">
-                    <label class="form-label">شهر / منطقه هدف *</label>
-                    <input type="text" name="city" class="form-control" placeholder="تبریز، تهران، اصفهان..." value="{{ current_site.city or 'تبریز' }}" required>
+                    <label class="form-label">کلمه کلیدی کانونی یا برند/محصول هدف *</label>
+                    <input type="text" name="brand" class="form-control" placeholder="مثال: {% if selected_site_id == 2 %}گردونه شانس، گیمیفیکیشن، کد تخفیف{% else %}سامسونگ، ال‌جی، سونی، ولیعصر{% endif %}" value="" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">شهر / بازار هدف *</label>
+                    <input type="text" name="city" class="form-control" placeholder="تبریز، تهران، سراسری..." value="{{ current_site.city or 'ایران' }}" required>
                 </div>
                 <button type="submit" class="btn btn-emerald w-100 mt-2">
                     <i class="fas fa-bolt me-1"></i>تولید آنی مقاله با ساختار اسکیما
@@ -78,7 +83,12 @@
     <!-- Generated Articles Preview / List -->
     <div class="col-lg-7">
         <div class="card card-custom p-4">
-            <h2 class="h5 fw-bold text-white mb-3">مقالات تولید شده در سیستم ({{ articles|length }})</h2>
+            <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+                <h2 class="h5 fw-bold text-white mb-0">
+                    <i class="fas fa-newspaper text-info me-2"></i>مقالات تولید شده برای {{ current_site.name }} ({{ articles|length }})
+                </h2>
+                <span class="badge badge-solid-cyan font-monospace">{{ current_site.domain }}</span>
+            </div>
             
             {% if articles %}
                 <div class="list-group list-group-flush">
@@ -96,7 +106,7 @@
                                 <small class="text-white-50">{{ art.published_at }}</small>
                             </div>
 
-                            <div class="d-flex gap-1">
+                            <div class="d-flex gap-1 align-items-center">
                                 <!-- Publish to Local Project -->
                                 <form action="/api/articles/{{ art.id }}/publish-local" method="POST" class="d-inline">
                                     <button type="submit" class="btn btn-sm btn-outline-contrast-light" title="ایجاد فایل HTML در پوشه سورس پروژه">
@@ -112,6 +122,13 @@
                                     </button>
                                 </form>
                                 {% endif %}
+
+                                <!-- Delete Article -->
+                                <form action="/api/articles/{{ art.id }}/delete" method="POST" class="d-inline" onsubmit="return confirm('آیا از حذف این مقاله مطمئن هستید؟')">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger" title="حذف مقاله">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </form>
                             </div>
                         </div>
                     </div>
@@ -119,11 +136,29 @@
                 </div>
             {% else %}
                 <div class="text-center py-5 text-white-50">
-                    <i class="fas fa-newspaper fs-1 mb-2 text-info"></i>
-                    <p>هنوز مقاله‌ای تولید نشده است. از فرم سمت راست اولین مقاله را ایجاد کنید.</p>
+                    <i class="fas fa-newspaper fs-1 mb-2 text-info opacity-75"></i>
+                    <p class="mb-0">هنوز مقاله‌ای برای وب‌سایت <b>{{ current_site.name }}</b> تولید نشده است.</p>
+                    <small>از فرم سمت راست یکی از موضوعات هوشمند متناسب با این سایت را انتخاب و دکمه تولید را بزنید.</small>
                 </div>
             {% endif %}
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function onTopicChange(selectElem) {
+        const customRow = document.getElementById('customTopicRow');
+        const customInput = document.getElementById('customTopicInput');
+        if (selectElem.value === 'custom') {
+            customRow.style.display = 'block';
+            customInput.required = true;
+            customInput.focus();
+        } else {
+            customRow.style.display = 'none';
+            customInput.required = false;
+        }
+    }
+</script>
 {% endblock %}

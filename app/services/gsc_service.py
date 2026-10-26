@@ -152,22 +152,36 @@ class GSCService:
             avg_pos = round(sum(q["position"] for q in queries) / len(queries), 1) if queries else 0
             data_source = "دیتای واقعی وارد شده از گوگل سرچ کنسول"
         else:
-            # Baseline realistic representation until user uploads/connects
-            queries = [
-                {"query": "تعمیرات تلویزیون در تبریز", "clicks": 142, "impressions": 1820, "ctr": 7.8, "position": 3.4},
-                {"query": "تعمیر تلویزیون در تبریز", "clicks": 98, "impressions": 1450, "ctr": 6.7, "position": 4.1},
-                {"query": "تعمیر تلویزیون سامسونگ تبریز", "clicks": 76, "impressions": 890, "ctr": 8.5, "position": 2.8},
-                {"query": "تعمیر بک لایت تلویزیون تبریز", "clicks": 54, "impressions": 620, "ctr": 8.7, "position": 3.1},
-                {"query": "تعمیر تلویزیون ال جی تبریز", "clicks": 49, "impressions": 580, "ctr": 8.4, "position": 3.5},
-                {"query": "هزینه تعویض بک لایت در تبریز", "clicks": 32, "impressions": 410, "ctr": 7.8, "position": 4.6},
-                {"query": "نمایندگی تعمیر تلویزیون تبریز", "clicks": 28, "impressions": 530, "ctr": 5.2, "position": 5.8},
-                {"query": "تعمیر تلویزیون سونی در تبریز", "clicks": 21, "impressions": 340, "ctr": 6.1, "position": 4.9}
-            ]
+            from app.services.ai_content import detect_site_niche
+            niche = detect_site_niche(site_name, domain, (site["category"] if site else "") or "", [])
+            if niche == "gamification":
+                queries = [
+                    {"query": "گردونه شانس", "clicks": 180, "impressions": 2100, "ctr": 8.5, "position": 2.9, "is_preview": True},
+                    {"query": "گردونه شانس آنلاین", "clicks": 110, "impressions": 1450, "ctr": 7.5, "position": 3.4, "is_preview": True},
+                    {"query": "گیمیفیکیشن فروشگاه اینترنتی", "clicks": 85, "impressions": 920, "ctr": 9.2, "position": 2.4, "is_preview": True},
+                    {"query": "کد تخفیف گردونه شانس", "clicks": 65, "impressions": 780, "ctr": 8.3, "position": 3.1, "is_preview": True},
+                    {"query": "افزایش نرخ تبدیل با گردونه جوایز", "clicks": 45, "impressions": 530, "ctr": 8.4, "position": 3.8, "is_preview": True}
+                ]
+            else:
+                queries = [
+                    {"query": "تعمیرات تلویزیون در تبریز", "clicks": 142, "impressions": 1820, "ctr": 7.8, "position": 3.4, "is_preview": True},
+                    {"query": "تعمیر تلویزیون در تبریز", "clicks": 98, "impressions": 1450, "ctr": 6.7, "position": 4.1, "is_preview": True},
+                    {"query": "تعمیر تلویزیون سامسونگ تبریز", "clicks": 76, "impressions": 890, "ctr": 8.5, "position": 2.8, "is_preview": True},
+                    {"query": "تعمیر بک لایت تلویزیون تبریز", "clicks": 54, "impressions": 620, "ctr": 8.7, "position": 3.1, "is_preview": True},
+                    {"query": "تعمیر تلویزیون ال جی تبریز", "clicks": 49, "impressions": 580, "ctr": 8.4, "position": 3.5, "is_preview": True},
+                    {"query": "هزینه تعویض بک لایت در تبریز", "clicks": 32, "impressions": 410, "ctr": 7.8, "position": 4.6, "is_preview": True},
+                    {"query": "نمایندگی تعمیر تلویزیون تبریز", "clicks": 28, "impressions": 530, "ctr": 5.2, "position": 5.8, "is_preview": True},
+                    {"query": "تعمیر تلویزیون سونی در تبریز", "clicks": 21, "impressions": 340, "ctr": 6.1, "position": 4.9, "is_preview": True}
+                ]
             total_clicks = sum(q["clicks"] for q in queries)
             total_impressions = sum(q["impressions"] for q in queries)
             avg_ctr = round((total_clicks / total_impressions * 100), 1)
             avg_pos = round(sum(q["position"] for q in queries) / len(queries), 1)
-            data_source = "آماده دریافت فایل خروجی کنسول گوگل یا کلید Service Account"
+            data_source = "حالت پیش‌نمایش (منتظر بارگذاری Queries.csv یا کلید Service Account)"
+
+        # Adapt local maps status to current site
+        business_title = site_name if site else "وب‌سایت ثبت شده"
+        business_cat = site["category"] if site and site["category"] else "خدمات تخصصی"
 
         return {
             "site_id": site_id,
@@ -183,12 +197,12 @@ class GSCService:
             "date_range": f"{days} روز اخیر",
             "top_queries": queries,
             "maps_status": {
-                "business_name": "مرکز تخصصی تعمیرات تلویزیون تبریز (تبریز تی‌وی)",
-                "category": "Television repair service",
-                "phone": "04134773603 / 09934658380",
+                "business_name": business_title,
+                "category": business_cat,
+                "phone": "04134773603 / 09934658380" if "تبریز" in site_name else "تنظیم شده در سایت",
                 "rating": 4.8,
                 "reviews_count": 34,
                 "verified": True,
-                "local_pack_ranking": "Top 3 تبریز"
+                "local_pack_ranking": "Top 3 تبریز" if "تبریز" in site_name else "فعال در نتایج محلی"
             }
         }

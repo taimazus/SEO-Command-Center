@@ -39,6 +39,9 @@
                     <div class="input-group">
                         <span class="input-group-text bg-dark border-secondary text-white-50"><i class="fas fa-folder-open"></i></span>
                         <input type="text" name="project_path" id="projectPathInput" class="form-control font-monospace" placeholder="F:\Projects\TabrizTv" value="{{ project_path }}" required>
+                        <button type="button" class="btn btn-outline-contrast-cyan" onclick="openFolderBrowserModal()" title="مرور و انتخاب پوشه از روی هارد">
+                            <i class="fas fa-folder-tree me-1"></i>مرور...
+                        </button>
                     </div>
                 </div>
 
@@ -274,11 +277,170 @@
         </div>
         {% endif %}
     {% endif %}
+    <!-- Folder Browser Modal -->
+    <div class="modal fade" id="folderBrowserModal" tabindex="-1" aria-labelledby="folderBrowserModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content bg-dark text-white border-secondary" style="background-color: #0d1424 !important;">
+                <div class="modal-header border-secondary py-3">
+                    <h5 class="modal-title h6 fw-bold" id="folderBrowserModalLabel">
+                        <i class="fas fa-folder-tree text-info me-2"></i>کاوشگر و انتخاب پوشه سورس‌پروژه
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <!-- Native Dialog Option -->
+                    <div class="d-flex justify-content-between align-items-center mb-3 p-3 rounded-3" style="background-color: #080d1a; border: 1px dashed #283a5c;">
+                        <div>
+                            <span class="small fw-bold text-white d-block"><i class="fab fa-windows text-primary me-2"></i>انتخاب مستقیم از طریق پنجره ویندوز</span>
+                            <span class="text-white-50 small" style="font-size: 0.78rem;">می‌توانید پنجره رسمی انتخاب پوشه ویندوز (Windows Folder Browser) را مستقیماً باز کنید.</span>
+                        </div>
+                        <button type="button" class="btn btn-sm btn-outline-info text-nowrap" onclick="triggerNativeFolderDialog()">
+                            <i class="fas fa-arrow-up-right-from-square me-1"></i>باز کردن دیالوگ ویندوز
+                        </button>
+                    </div>
+
+                    <!-- Drives List -->
+                    <div class="mb-3">
+                        <label class="small text-white-50 fw-bold d-block mb-1">انتخاب درایو دیسک:</label>
+                        <div id="browserDrivesList" class="d-flex flex-wrap gap-2">
+                            <!-- Populated via JS -->
+                        </div>
+                    </div>
+
+                    <!-- Current Path Bar -->
+                    <div class="mb-3">
+                        <label class="small text-white-50 fw-bold d-block mb-1">مسیر جاری:</label>
+                        <div class="input-group">
+                            <button class="btn btn-outline-secondary" type="button" onclick="navigateParentFolder()" id="browserUpBtn" title="یک پوشه بالاتر">
+                                <i class="fas fa-level-up-alt"></i>
+                            </button>
+                            <input type="text" id="browserCurrentPathInput" class="form-control font-monospace" readonly>
+                            <button class="btn btn-emerald" type="button" onclick="selectCurrentFolderFromBrowser()">
+                                <i class="fas fa-check me-1"></i>انتخاب همین پوشه
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Folder Listing -->
+                    <div class="border rounded-3 p-2" style="background-color: #060912; border-color: #1f2e4a !important; max-height: 280px; min-height: 180px; overflow-y: auto;">
+                        <div id="browserFolderList" class="list-group list-group-flush">
+                            <!-- Populated via JS -->
+                        </div>
+                        <div id="browserLoading" class="text-center py-4 text-white-50" style="display: none;">
+                            <i class="fas fa-spinner fa-spin me-2"></i>در حال بارگذاری پوشه‌ها...
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer border-secondary py-2">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">انصراف</button>
+                    <button type="button" class="btn btn-emerald btn-sm" onclick="selectCurrentFolderFromBrowser()">
+                        <i class="fas fa-check me-1"></i>تأیید و ذخیره این مسیر
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 {% endblock %}
 
 {% block extra_js %}
 <script>
+    let currentBrowsingPath = "";
+    let currentParentPath = "";
+    let browserModalInstance = null;
+
+    function openFolderBrowserModal() {
+        if (!browserModalInstance) {
+            browserModalInstance = new bootstrap.Modal(document.getElementById('folderBrowserModal'));
+        }
+        const existingPath = document.getElementById('projectPathInput').value.trim() || "F:\\Projects";
+        browserModalInstance.show();
+        loadBrowsePath(existingPath);
+    }
+
+    function loadBrowsePath(path) {
+        const loading = document.getElementById('browserLoading');
+        const folderList = document.getElementById('browserFolderList');
+        const drivesList = document.getElementById('browserDrivesList');
+        const pathInput = document.getElementById('browserCurrentPathInput');
+
+        loading.style.display = "block";
+        folderList.innerHTML = "";
+
+        fetch('/api/utils/browse-folder?path=' + encodeURIComponent(path || ''))
+            .then(res => res.json())
+            .then(data => {
+                loading.style.display = "none";
+                currentBrowsingPath = data.current_path || "";
+                currentParentPath = data.parent_path || "";
+                pathInput.value = currentBrowsingPath;
+
+                // Render drives
+                if (data.drives && data.drives.length) {
+                    drivesList.innerHTML = data.drives.map(d => `
+                        <button type="button" class="btn btn-sm ${currentBrowsingPath.startsWith(d.path) ? 'btn-info' : 'btn-outline-secondary'} font-monospace" onclick="loadBrowsePath('${d.path.replace(/\\/g, '\\\\')}')">
+                            <i class="fas fa-hard-drive me-1"></i>${d.name}
+                        </button>
+                    `).join('');
+                }
+
+                // Render folders
+                if (data.folders && data.folders.length) {
+                    folderList.innerHTML = data.folders.map(f => `
+                        <a href="javascript:void(0)" class="list-group-item list-group-item-action bg-transparent text-white border-0 py-2 px-3 d-flex align-items-center justify-content-between" onclick="loadBrowsePath('${f.path.replace(/\\/g, '\\\\')}')">
+                            <span><i class="fas fa-folder text-warning me-2"></i>${f.name}</span>
+                            <small class="text-white-50"><i class="fas fa-chevron-left small"></i></small>
+                        </a>
+                    `).join('');
+                } else if (data.error) {
+                    folderList.innerHTML = `<div class="p-3 text-danger small"><i class="fas fa-exclamation-triangle me-1"></i>${data.error}</div>`;
+                } else {
+                    folderList.innerHTML = `<div class="p-3 text-white-50 small text-center">هیچ زیرپوشه‌ای در این مسیر یافت نشد.</div>`;
+                }
+            })
+            .catch(err => {
+                loading.style.display = "none";
+                folderList.innerHTML = `<div class="p-3 text-danger small">خطا در بارگذاری مسیر: ${err}</div>`;
+            });
+    }
+
+    function navigateParentFolder() {
+        if (currentParentPath) {
+            loadBrowsePath(currentParentPath);
+        } else {
+            loadBrowsePath("");
+        }
+    }
+
+    function selectCurrentFolderFromBrowser() {
+        if (!currentBrowsingPath) {
+            alert('لطفاً یک پوشه معتبر انتخاب کنید.');
+            return;
+        }
+        document.getElementById('projectPathInput').value = currentBrowsingPath;
+        if (browserModalInstance) {
+            browserModalInstance.hide();
+        }
+        saveCurrentProjectPath();
+    }
+
+    function triggerNativeFolderDialog() {
+        fetch('/api/utils/select-folder-dialog', { method: 'POST' })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success && data.path) {
+                    document.getElementById('projectPathInput').value = data.path;
+                    if (browserModalInstance) {
+                        browserModalInstance.hide();
+                    }
+                    saveCurrentProjectPath();
+                }
+            })
+            .catch(err => {
+                alert('خطا در فراخوانی پنجره ویندوز: ' + err);
+            });
+    }
+
     function onSiteSelectChange(selectElem) {
         const selectedOption = selectElem.options[selectElem.selectedIndex];
         const savedPath = selectedOption.dataset.path;
