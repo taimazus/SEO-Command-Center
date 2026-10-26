@@ -1,18 +1,18 @@
 import os
 from contextlib import asynccontextmanager
 from typing import Optional, List
-from fastapi import FastAPI, Request, Form, HTTPException
+from fastapi import FastAPI, Request, Form, HTTPException, UploadFile, File
 from fastapi.responses import HTMLResponse, RedirectResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
-from app.database import init_db, get_connection
+from app.database import init_db, get_connection, DB_DIR
 from app.services.rank_tracker import update_keyword_rank, update_all_site_ranks
 from app.services.health_auditor import audit_site_health
 from app.services.ai_content import generate_seo_article
 from app.services.indexer_service import submit_urls_for_indexing, fetch_sitemap_urls
 from app.services.source_doctor import SourceDoctor
-from app.services.gsc_service import GSCService
+from app.services.gsc_service import GSCService, CREDENTIALS_FILE
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -33,10 +33,34 @@ TEMPLATES_DIR = os.path.join(BASE_DIR, "templates")
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 templates = Jinja2Templates(directory=TEMPLATES_DIR)
 
+def get_site_context(request: Request, explicit_site_id: Optional[int] = None):
+    """
+    Resolves the global active site from cookie or query param, falling back to the first site.
+    Returns: (all_sites, current_site, active_id)
+    """
+    conn = get_connection()
+    all_sites = conn.execute("SELECT * FROM sites ORDER BY id ASC").fetchall()
+    
+    cookie_site_id = request.cookies.get("active_site_id")
+    active_id = None
+    if explicit_site_id is not None:
+        active_id = explicit_site_id
+    elif cookie_site_id and cookie_site_id.isdigit():
+        active_id = int(cookie_site_id)
+    
+    site_map = {s["id"]: s for s in all_sites}
+    if active_id not in site_map and all_sites:
+        active_id = all_sites[0]["id"]
+    
+    current_site = site_map.get(active_id) if active_id else None
+    conn.close()
+    return all_sites, current_site, active_id
+
 # ----------------- WEB PAGES -----------------
 
 @app.get("/", response_class=HTMLResponse)
 def read_dashboard(request: Request):
+    all_sites, current_site, active_id = get_site_context(request)
     conn = get_connection()
     sites = conn.execute("""
         SELECT s.*, COUNT(k.id) AS keyword_count
@@ -75,6 +99,9 @@ def read_dashboard(request: Request):
         name="dashboard.html",
         context={
             "active_page": "dashboard",
+            "all_sites": all_sites,
+            "current_site": current_site,
+            "active_site_id": active_id,
             "stats": stats,
             "sites": sites,
             "top_keywords": keywords
@@ -83,6 +110,7 @@ def read_dashboard(request: Request):
 
 @app.get("/sites", response_class=HTMLResponse)
 def list_sites_page(request: Request):
+    all_sites, current_site, active_id = get_site_context(request)
     conn = get_connection()
     sites = conn.execute("""
         SELECT s.*, COUNT(k.id) AS keyword_count
@@ -98,12 +126,16 @@ def list_sites_page(request: Request):
         name="sites.html",
         context={
             "active_page": "sites",
+            "all_sites": all_sites,
+            "current_site": current_site,
+            "active_site_id": active_id,
             "sites": sites
         }
     )
 
 @app.get("/sites/{site_id}", response_class=HTMLResponse)
 def site_detail_page(request: Request, site_id: int):
+    all_sites, current_site, active_id = get_site_context(request, site_id)
     conn = get_connection()
     site = conn.execute("SELECT * FROM sites WHERE id = ?", (site_id,)).fetchone()
     if not site:
@@ -118,6 +150,9 @@ def site_detail_page(request: Request, site_id: int):
         name="site_detail.html",
         context={
             "active_page": "sites",
+            "all_sites": all_sites,
+            "current_site": current_site,
+            "active_site_id": active_id,
             "site": site,
             "keywords": keywords
         }
@@ -125,17 +160,17 @@ def site_detail_page(request: Request, site_id: int):
 
 @app.get("/rank-tracker", response_class=HTMLResponse)
 def rank_tracker_page(request: Request, site_id: Optional[int] = None):
+    all_sites, current_site, active_id = get_site_context(request, site_id)
     conn = get_connection()
-    sites = conn.execute("SELECT id, name, domain FROM sites ORDER BY id ASC").fetchall()
 
-    if site_id:
+    if active_id:
         keywords = conn.execute("""
             SELECT k.*, s.domain, s.name as site_name
             FROM keywords k
             JOIN sites s ON s.id = k.site_id
             WHERE k.site_id = ?
             ORDER BY k.current_position ASC, k.id ASC
-        """, (site_id,)).fetchall()
+        """, (active_id,)).fetchall()
     else:
         keywords = conn.execute("""
             SELECT k.*, s.domain, s.name as site_name
@@ -156,9 +191,11 @@ def rank_tracker_page(request: Request, site_id: Optional[int] = None):
         name="rank_tracker.html",
         context={
             "active_page": "ranks",
-            "sites": sites,
+            "all_sites": all_sites,
+            "current_site": current_site,
+            "sites": all_sites,
             "keywords": keywords,
-            "selected_site_id": site_id,
+            "selected_site_id": active_id,
             "chart_data": {
                 "top_10": top_10,
                 "top_20": top_20,
@@ -169,44 +206,66 @@ def rank_tracker_page(request: Request, site_id: Optional[int] = None):
     )
 
 @app.get("/source-doctor", response_class=HTMLResponse)
-def source_doctor_page(request: Request, project_path: Optional[str] = "F:\\Projects\\TabrizTv"):
+def source_doctor_page(request: Request, site_id: Optional[int] = None, project_path: Optional[str] = None):
+    all_sites, current_site, active_id = get_site_context(request, site_id)
+    
+    target_path = project_path
+    if not target_path and current_site:
+        target_path = current_site["project_path"] or r"F:\Projects\TabrizTv"
+    elif not target_path:
+        target_path = r"F:\Projects\TabrizTv"
+
     scan_result = None
     manifest_data = None
-    if project_path:
-        doctor = SourceDoctor(project_path)
+    if target_path and os.path.exists(target_path):
+        doctor = SourceDoctor(target_path)
         scan_result = doctor.analyze()
         if scan_result["success"]:
             manifest_data = doctor.generate_publish_manifest(days_modified=14)
+    elif target_path:
+        scan_result = {
+            "success": False,
+            "error": f"مسیر '{target_path}' یافت نشد. لطفاً آدرس را بررسی نمایید.",
+            "project_path": target_path
+        }
 
     return templates.TemplateResponse(
         request=request,
         name="source_doctor.html",
         context={
             "active_page": "doctor",
-            "project_path": project_path,
+            "all_sites": all_sites,
+            "current_site": current_site,
+            "selected_site_id": active_id,
+            "project_path": target_path,
             "scan_result": scan_result,
             "manifest_data": manifest_data
         }
     )
 
 @app.get("/gsc-integration", response_class=HTMLResponse)
-def gsc_integration_page(request: Request, site_id: Optional[int] = 1):
+def gsc_integration_page(request: Request, site_id: Optional[int] = None, imported: Optional[int] = None):
+    all_sites, current_site, active_id = get_site_context(request, site_id)
     gsc_service = GSCService()
-    gsc_data = gsc_service.get_performance_summary(site_id=site_id or 1)
+    gsc_data = gsc_service.get_performance_summary(site_id=active_id or 1)
 
     return templates.TemplateResponse(
         request=request,
         name="gsc_integration.html",
         context={
             "active_page": "gsc",
-            "gsc_data": gsc_data
+            "all_sites": all_sites,
+            "current_site": current_site,
+            "selected_site_id": active_id,
+            "gsc_data": gsc_data,
+            "just_imported": bool(imported)
         }
     )
 
 @app.get("/content-generator", response_class=HTMLResponse)
 def content_generator_page(request: Request, site_id: Optional[int] = None):
+    all_sites, current_site, active_id = get_site_context(request, site_id)
     conn = get_connection()
-    sites = conn.execute("SELECT id, name, domain FROM sites ORDER BY id ASC").fetchall()
     articles = conn.execute("SELECT * FROM articles ORDER BY id DESC LIMIT 10").fetchall()
     conn.close()
 
@@ -215,16 +274,18 @@ def content_generator_page(request: Request, site_id: Optional[int] = None):
         name="content_generator.html",
         context={
             "active_page": "content",
-            "sites": sites,
+            "all_sites": all_sites,
+            "current_site": current_site,
+            "sites": all_sites,
             "articles": articles,
-            "selected_site_id": site_id or (sites[0]["id"] if sites else None)
+            "selected_site_id": active_id
         }
     )
 
 @app.get("/indexer", response_class=HTMLResponse)
 def indexer_page(request: Request):
+    all_sites, current_site, active_id = get_site_context(request)
     conn = get_connection()
-    sites = conn.execute("SELECT id, name, domain, sitemap_url FROM sites ORDER BY id ASC").fetchall()
     logs = conn.execute("SELECT * FROM indexing_logs ORDER BY id DESC LIMIT 20").fetchall()
     conn.close()
 
@@ -233,24 +294,26 @@ def indexer_page(request: Request):
         name="indexer.html",
         context={
             "active_page": "indexer",
-            "sites": sites,
+            "all_sites": all_sites,
+            "current_site": current_site,
+            "sites": all_sites,
+            "selected_site_id": active_id,
             "logs": logs
         }
     )
 
 @app.get("/health-audit", response_class=HTMLResponse)
 def health_audit_page(request: Request, site_id: Optional[int] = None):
+    all_sites, current_site, active_id = get_site_context(request, site_id)
     conn = get_connection()
-    sites = conn.execute("SELECT id, name, domain FROM sites ORDER BY id ASC").fetchall()
-    selected_id = site_id or (sites[0]["id"] if sites else None)
 
     audit = None
-    if selected_id:
+    if active_id:
         audit_row = conn.execute("""
             SELECT * FROM health_audits
             WHERE site_id = ?
             ORDER BY id DESC LIMIT 1
-        """, (selected_id,)).fetchone()
+        """, (active_id,)).fetchone()
         if audit_row:
             import json
             audit = dict(audit_row)
@@ -258,7 +321,7 @@ def health_audit_page(request: Request, site_id: Optional[int] = None):
             audit["issues"] = json.loads(audit_row["issues_json"] or "[]")
         else:
             try:
-                audit = audit_site_health(selected_id)
+                audit = audit_site_health(active_id)
             except Exception:
                 pass
     conn.close()
@@ -268,13 +331,38 @@ def health_audit_page(request: Request, site_id: Optional[int] = None):
         name="technical_audit.html",
         context={
             "active_page": "audit",
-            "sites": sites,
+            "all_sites": all_sites,
+            "current_site": current_site,
+            "sites": all_sites,
             "audit": audit,
-            "selected_site_id": selected_id
+            "selected_site_id": active_id
         }
     )
 
 # ----------------- FORM ACTIONS & API -----------------
+
+@app.post("/api/sites/{site_id}/update-path")
+def update_site_path_action(site_id: int, project_path: str = Form(...)):
+    clean_path = project_path.strip()
+    conn = get_connection()
+    conn.execute("UPDATE sites SET project_path = ? WHERE id = ?", (clean_path, site_id))
+    conn.commit()
+    conn.close()
+    return RedirectResponse(f"/source-doctor?site_id={site_id}&project_path={clean_path}", status_code=303)
+
+@app.post("/api/gsc/import-csv")
+async def import_gsc_csv_action(file: UploadFile = File(...), site_id: int = Form(...)):
+    file_bytes = await file.read()
+    gsc_service = GSCService()
+    gsc_service.import_gsc_csv(site_id, file_bytes, file.filename)
+    return RedirectResponse(f"/gsc-integration?site_id={site_id}&imported=1", status_code=303)
+
+@app.post("/api/gsc/upload-credentials")
+async def upload_gsc_credentials_action(credentials_file: UploadFile = File(...), site_id: int = Form(...)):
+    content = await credentials_file.read()
+    with open(CREDENTIALS_FILE, "wb") as f:
+        f.write(content)
+    return RedirectResponse(f"/gsc-integration?site_id={site_id}&connected=1", status_code=303)
 
 @app.post("/api/source-doctor/auto-fix")
 def source_doctor_autofix_action(project_path: str = Form(...)):
@@ -286,6 +374,7 @@ def source_doctor_autofix_action(project_path: str = Form(...)):
 def source_doctor_export_zip_action(project_path: str = Form(...)):
     doctor = SourceDoctor(project_path)
     zip_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data", "exports")
+    os.makedirs(zip_dir, exist_ok=True)
     zip_path = os.path.join(zip_dir, "TabrizTv_Publish_Package.zip")
     doctor.create_publish_zip(zip_path, days_modified=14)
     if os.path.exists(zip_path):
@@ -298,15 +387,16 @@ def create_site_action(
     domain: str = Form(...),
     city: str = Form("تبریز"),
     category: str = Form("خدماتی"),
-    sitemap_url: Optional[str] = Form(None)
+    sitemap_url: Optional[str] = Form(None),
+    project_path: Optional[str] = Form(None)
 ):
     clean_domain = domain.replace("https://", "").replace("http://", "").strip("/")
     conn = get_connection()
     try:
         conn.execute("""
-            INSERT INTO sites (name, domain, city, category, sitemap_url)
-            VALUES (?, ?, ?, ?, ?)
-        """, (name, clean_domain, city, category, sitemap_url))
+            INSERT INTO sites (name, domain, city, category, sitemap_url, project_path)
+            VALUES (?, ?, ?, ?, ?, ?)
+        """, (name, clean_domain, city, category, sitemap_url, project_path))
         conn.commit()
     except Exception as e:
         conn.close()

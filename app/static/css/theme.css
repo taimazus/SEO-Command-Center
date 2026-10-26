@@ -1,0 +1,542 @@
+/* ==========================================================================
+   SEO COMMAND CENTER - CENTRAL DESIGN SYSTEM (theme.css)
+   WCAG AA / AAA High-Contrast Centralized Stylesheet
+   Version 3.0.0
+   ========================================================================== */
+
+:root {
+    --bg-base: #060911;
+    --bg-surface: #0c121e;
+    --bg-surface-elevated: #111a2c;
+    --bg-table: #080d16;
+    --bg-table-hover: #121c30;
+    --bg-input: #060a12;
+    
+    --border-subtle: #1e2c47;
+    --border-strong: #2f456e;
+    
+    --text-pure-white: #ffffff;
+    --text-bright: #f8fafc;
+    --text-body: #e2e8f0;
+    --text-muted-bright: #cbd5e1;
+    --text-slate: #94a3b8;
+    
+    --accent-emerald: #10b981;
+    --accent-emerald-hover: #34d399;
+    --accent-cyan: #06b6d4;
+    --accent-cyan-hover: #38bdf8;
+    --accent-amber: #f59e0b;
+    --accent-rose: #f43f5e;
+}
+
+/* --------------------------------------------------------------------------
+   1. GLOBAL CANVAS & BODY
+   -------------------------------------------------------------------------- */
+body {
+    font-family: 'Vazirmatn', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+    background-color: var(--bg-base) !important;
+    background-image: 
+        radial-gradient(circle at 10% 10%, rgba(16, 185, 129, 0.05) 0%, transparent 40%),
+        radial-gradient(circle at 90% 90%, rgba(6, 182, 212, 0.05) 0%, transparent 40%),
+        linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px) !important;
+    background-size: 100% 100%, 100% 100%, 36px 36px, 36px 36px !important;
+    color: var(--text-body) !important;
+    min-height: 100vh;
+    margin: 0;
+    padding: 0;
+}
+
+/* --------------------------------------------------------------------------
+   2. SIDEBAR NAVIGATION
+   -------------------------------------------------------------------------- */
+.sidebar {
+    background-color: #070c16 !important;
+    border-left: 1px solid var(--border-subtle) !important;
+    min-height: 100vh;
+    width: 280px;
+    position: fixed;
+    top: 0;
+    right: 0;
+    z-index: 1000;
+    transition: all 0.25s ease-in-out;
+}
+
+.main-content {
+    margin-right: 280px;
+    padding: 2.25rem;
+    min-height: 100vh;
+}
+
+@media (max-width: 991.98px) {
+    .sidebar { margin-right: -280px; }
+    .sidebar.active { margin-right: 0; }
+    .main-content { margin-right: 0; }
+}
+
+.brand-logo {
+    padding: 1.5rem 1.5rem;
+    border-bottom: 1px solid var(--border-subtle) !important;
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+    text-decoration: none;
+    color: #ffffff !important;
+}
+
+.brand-icon-box {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #10b981 0%, #06b6d4 100%) !important;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #022c22 !important;
+    font-size: 1.35rem;
+    box-shadow: 0 0 16px rgba(16, 185, 129, 0.4) !important;
+}
+
+.nav-link {
+    color: #cbd5e1 !important;
+    padding: 0.8rem 1.25rem !important;
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+    font-weight: 600 !important;
+    font-size: 0.95rem !important;
+    border-radius: 10px;
+    margin: 0.25rem 0.85rem;
+    transition: all 0.15s ease-in-out;
+    text-decoration: none !important;
+}
+
+.nav-link:hover {
+    color: #ffffff !important;
+    background-color: var(--bg-surface-elevated) !important;
+}
+
+.nav-link.active {
+    color: #ffffff !important;
+    background-color: #121c2e !important;
+    border-right: 3.5px solid var(--accent-emerald) !important;
+    font-weight: 800 !important;
+}
+
+.nav-link.active i {
+    color: var(--accent-emerald) !important;
+}
+
+/* --------------------------------------------------------------------------
+   3. CARDS, PANELS & STAT BLOCKS
+   -------------------------------------------------------------------------- */
+.card-custom,
+.card {
+    background-color: var(--bg-surface) !important;
+    border: 1px solid var(--border-subtle) !important;
+    border-radius: 18px !important;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5) !important;
+    color: var(--text-body) !important;
+}
+
+.stat-card {
+    border-radius: 18px !important;
+    background: linear-gradient(145deg, #0e172a 0%, #080f1c 100%) !important;
+    border: 1px solid var(--border-subtle) !important;
+    padding: 1.6rem !important;
+    transition: all 0.2s ease;
+}
+
+.stat-card:hover {
+    transform: translateY(-2px);
+    border-color: var(--accent-emerald) !important;
+    box-shadow: 0 8px 24px rgba(16, 185, 129, 0.18) !important;
+}
+
+.stat-icon {
+    width: 52px;
+    height: 52px;
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.6rem;
+}
+
+.stat-card .stat-label,
+.stat-card span.text-muted,
+.stat-card span.text-white-50 {
+    color: #cbd5e1 !important;
+    font-size: 0.95rem !important;
+    font-weight: 700 !important;
+    display: block !important;
+    margin-bottom: 0.4rem !important;
+}
+
+.stat-card h2 {
+    color: #ffffff !important;
+    font-size: 2.3rem !important;
+    font-weight: 900 !important;
+}
+
+/* --------------------------------------------------------------------------
+   4. TABLES: COMPLETE ERADICATION OF WHITE BACKGROUND BUG
+   -------------------------------------------------------------------------- */
+.table-responsive {
+    background-color: var(--bg-table) !important;
+    border-radius: 14px !important;
+    border: 1px solid var(--border-subtle) !important;
+    overflow: hidden !important;
+}
+
+table,
+.table,
+.table-custom,
+.table-dark-custom {
+    --bs-table-bg: var(--bg-table) !important;
+    --bs-table-accent-bg: transparent !important;
+    --bs-table-striped-bg: #0c121e !important;
+    --bs-table-hover-bg: var(--bg-table-hover) !important;
+    --bs-table-color: #ffffff !important;
+    --bs-table-border-color: var(--border-subtle) !important;
+    
+    background-color: var(--bg-table) !important;
+    color: #ffffff !important;
+    margin-bottom: 0 !important;
+    width: 100% !important;
+    border-collapse: collapse !important;
+}
+
+/* Headers */
+table thead,
+.table thead {
+    background-color: #060911 !important;
+}
+
+table thead th,
+.table thead th,
+.table-custom th {
+    background-color: #060911 !important;
+    color: #ffffff !important;
+    font-weight: 800 !important;
+    font-size: 0.95rem !important;
+    border-bottom: 2px solid var(--border-strong) !important;
+    border-top: none !important;
+    padding: 1.1rem 1rem !important;
+    letter-spacing: 0.3px;
+}
+
+/* Rows & Cells */
+table tbody,
+.table tbody {
+    background-color: var(--bg-table) !important;
+}
+
+table tbody tr,
+.table tbody tr {
+    background-color: var(--bg-table) !important;
+    border-bottom: 1px solid var(--border-subtle) !important;
+    transition: background-color 0.15s ease-in-out !important;
+}
+
+table tbody tr:hover,
+.table tbody tr:hover {
+    background-color: var(--bg-table-hover) !important;
+}
+
+table tbody td,
+.table tbody td,
+.table-custom td {
+    background-color: transparent !important;
+    color: #f8fafc !important;
+    font-size: 0.95rem !important;
+    font-weight: 600 !important;
+    border-bottom: 1px solid var(--border-subtle) !important;
+    padding: 1rem 1rem !important;
+    vertical-align: middle !important;
+}
+
+/* Dedicated High-Contrast Keyword Cell Elements */
+.keyword-title {
+    color: #ffffff !important;
+    font-size: 1.05rem !important;
+    font-weight: 800 !important;
+    display: block !important;
+    margin-bottom: 4px !important;
+    letter-spacing: 0.2px;
+}
+
+.keyword-url {
+    color: #94a3b8 !important;
+    font-size: 0.84rem !important;
+    font-family: 'Consolas', monospace !important;
+    display: block !important;
+    direction: ltr !important;
+    text-align: right !important;
+    font-weight: 500 !important;
+}
+
+/* --------------------------------------------------------------------------
+   5. FORMS, LABELS & ULTRA-CRISP PLACEHOLDERS
+   -------------------------------------------------------------------------- */
+.form-label,
+label {
+    color: #ffffff !important;
+    font-weight: 800 !important;
+    font-size: 0.95rem !important;
+    margin-bottom: 0.5rem !important;
+    display: inline-block !important;
+}
+
+.form-control,
+.form-select,
+textarea.form-control {
+    background-color: var(--bg-input) !important;
+    border: 1.5px solid var(--border-strong) !important;
+    color: #ffffff !important;
+    font-weight: 600 !important;
+    border-radius: 12px !important;
+    padding: 0.8rem 1.15rem !important;
+    font-size: 0.96rem !important;
+}
+
+.form-control:focus,
+.form-select:focus,
+textarea.form-control:focus {
+    background-color: #0b111f !important;
+    border-color: var(--accent-emerald) !important;
+    color: #ffffff !important;
+    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.25) !important;
+}
+
+/* HIGH-VISIBILITY PLACEHOLDERS (Light Silver Slate #cbd5e1) */
+::-webkit-input-placeholder {
+    color: #cbd5e1 !important;
+    opacity: 1 !important;
+    font-weight: 600 !important;
+    font-size: 0.92rem !important;
+}
+:-moz-placeholder {
+    color: #cbd5e1 !important;
+    opacity: 1 !important;
+    font-weight: 600 !important;
+    font-size: 0.92rem !important;
+}
+::-moz-placeholder {
+    color: #cbd5e1 !important;
+    opacity: 1 !important;
+    font-weight: 600 !important;
+    font-size: 0.92rem !important;
+}
+:-ms-input-placeholder {
+    color: #cbd5e1 !important;
+    opacity: 1 !important;
+    font-weight: 600 !important;
+    font-size: 0.92rem !important;
+}
+::placeholder {
+    color: #cbd5e1 !important;
+    opacity: 1 !important;
+    font-weight: 600 !important;
+    font-size: 0.92rem !important;
+}
+
+/* --------------------------------------------------------------------------
+   6. GLOBAL TYPOGRAPHY OVERRIDES
+   -------------------------------------------------------------------------- */
+h1, h2, h3, h4, h5, h6,
+.h1, .h2, .h3, .h4, .h5, .h6 {
+    color: #ffffff !important;
+    font-weight: 800 !important;
+}
+
+p {
+    color: var(--text-body);
+    line-height: 1.8;
+}
+
+.text-muted,
+.text-white-50,
+span.text-muted,
+span.text-white-50,
+p.text-muted {
+    color: #cbd5e1 !important;
+    opacity: 1 !important;
+    font-weight: 500 !important;
+}
+
+small.text-muted,
+small.text-white-50 {
+    color: #cbd5e1 !important;
+    font-size: 0.88rem !important;
+}
+
+/* --------------------------------------------------------------------------
+   7. BUTTONS
+   -------------------------------------------------------------------------- */
+.btn-emerald,
+.btn-primary-custom {
+    background-color: var(--accent-emerald) !important;
+    color: #022c22 !important;
+    font-weight: 800 !important;
+    border-radius: 12px !important;
+    border: none !important;
+    padding: 0.75rem 1.4rem !important;
+    box-shadow: 0 4px 14px rgba(16, 185, 129, 0.3) !important;
+    transition: all 0.2s;
+}
+
+.btn-emerald:hover,
+.btn-primary-custom:hover {
+    background-color: var(--accent-emerald-hover) !important;
+    color: #022c22 !important;
+    transform: translateY(-1px);
+}
+
+.btn-cyan {
+    background-color: var(--accent-cyan) !important;
+    color: #042f2e !important;
+    font-weight: 800 !important;
+    border-radius: 12px !important;
+    border: none !important;
+    padding: 0.75rem 1.4rem !important;
+    box-shadow: 0 4px 14px rgba(6, 182, 212, 0.3) !important;
+}
+
+.btn-cyan:hover {
+    background-color: var(--accent-cyan-hover) !important;
+    color: #042f2e !important;
+}
+
+.btn-outline-contrast-light {
+    background-color: #121c2e !important;
+    color: #ffffff !important;
+    border: 1.5px solid #3d547d !important;
+    font-weight: 700 !important;
+    border-radius: 12px !important;
+    padding: 0.7rem 1.3rem !important;
+    text-decoration: none !important;
+}
+
+.btn-outline-contrast-light:hover {
+    background-color: #1a2842 !important;
+    border-color: #94a3b8 !important;
+    color: #ffffff !important;
+}
+
+.btn-outline-contrast-cyan {
+    background-color: rgba(6, 182, 212, 0.15) !important;
+    color: #38bdf8 !important;
+    border: 1.5px solid #0891b2 !important;
+    font-weight: 700 !important;
+    border-radius: 12px !important;
+    padding: 0.7rem 1.3rem !important;
+    text-decoration: none !important;
+}
+
+.btn-outline-contrast-cyan:hover {
+    background-color: #06b6d4 !important;
+    color: #082f49 !important;
+}
+
+/* --------------------------------------------------------------------------
+   8. SOLID HIGH-CONTRAST BADGES
+   -------------------------------------------------------------------------- */
+.badge-solid-emerald {
+    background-color: #064e3b !important;
+    color: #a7f3d0 !important;
+    border: 1.5px solid #10b981 !important;
+    font-weight: 800 !important;
+    padding: 0.45rem 0.8rem !important;
+    border-radius: 8px !important;
+}
+
+.badge-solid-cyan {
+    background-color: #164e63 !important;
+    color: #bae6fd !important;
+    border: 1.5px solid #06b6d4 !important;
+    font-weight: 800 !important;
+    padding: 0.45rem 0.8rem !important;
+    border-radius: 8px !important;
+}
+
+.badge-solid-amber {
+    background-color: #78350f !important;
+    color: #fef3c7 !important;
+    border: 1.5px solid #f59e0b !important;
+    font-weight: 800 !important;
+    padding: 0.45rem 0.8rem !important;
+    border-radius: 8px !important;
+}
+
+.badge-solid-rose {
+    background-color: #881337 !important;
+    color: #ffe4e6 !important;
+    border: 1.5px solid #f43f5e !important;
+    font-weight: 800 !important;
+    padding: 0.45rem 0.8rem !important;
+    border-radius: 8px !important;
+}
+
+/* --------------------------------------------------------------------------
+   9. GLOBAL PROJECT SELECTOR & FILTER TABS
+   -------------------------------------------------------------------------- */
+.global-project-pill {
+    background-color: #0c1424 !important;
+    border: 1.5px solid var(--border-strong) !important;
+    border-radius: 12px !important;
+    padding: 0.35rem 0.8rem !important;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.global-project-select {
+    background-color: #0c1424 !important;
+    color: #ffffff !important;
+    border: none !important;
+    font-weight: 800 !important;
+    font-size: 0.92rem !important;
+    cursor: pointer;
+}
+
+.global-project-select:focus {
+    outline: none !important;
+    box-shadow: none !important;
+}
+
+.filter-tab-btn {
+    background-color: #0d1526 !important;
+    border: 1.5px solid var(--border-subtle) !important;
+    color: #cbd5e1 !important;
+    font-weight: 700 !important;
+    font-size: 0.9rem !important;
+    padding: 0.55rem 1.1rem !important;
+    border-radius: 10px !important;
+    transition: all 0.2s ease !important;
+    cursor: pointer;
+    text-decoration: none !important;
+}
+
+.filter-tab-btn:hover {
+    background-color: #17233d !important;
+    color: #ffffff !important;
+    border-color: #3b527d !important;
+}
+
+.filter-tab-btn.active {
+    background-color: var(--accent-emerald) !important;
+    color: #022c22 !important;
+    border-color: var(--accent-emerald) !important;
+    font-weight: 800 !important;
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.25) !important;
+}
+
+.filter-tab-btn.active-cyan {
+    background-color: var(--accent-cyan) !important;
+    color: #082f49 !important;
+    border-color: var(--accent-cyan) !important;
+    font-weight: 800 !important;
+    box-shadow: 0 4px 12px rgba(6, 182, 212, 0.25) !important;
+}
+

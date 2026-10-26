@@ -5,25 +5,82 @@
 
 {% block content %}
 <div class="row g-4 mb-4">
-    <!-- GSC Connection Status Banner -->
+    <!-- GSC Connection Status & Upload Banner -->
     <div class="col-12">
-        <div class="card card-custom p-4 d-flex flex-row justify-content-between align-items-center flex-wrap gap-3">
-            <div class="d-flex align-items-center gap-3">
-                <div class="stat-icon bg-danger bg-opacity-10 text-danger" style="font-size: 2rem;">
-                    <i class="fab fa-google"></i>
+        <div class="card card-custom p-4">
+            <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-3">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="stat-icon bg-danger bg-opacity-10 text-danger" style="font-size: 2rem;">
+                        <i class="fab fa-google"></i>
+                    </div>
+                    <div>
+                        <h2 class="h5 fw-bold text-white mb-1">داده‌های واقعی Google Search Console & Google Maps</h2>
+                        <p class="text-white-50 small mb-0">نمایش کلیک‌ها، ایمپرشن‌ها و رتبه واقعی کلمات در سرچ کنسول با قابلیت اتصال مستقیم API یا ورود خروجی رسمی کنسول (Export ZIP/CSV).</p>
+                    </div>
                 </div>
                 <div>
-                    <h2 class="h5 fw-bold text-white mb-1">اتصال به Google Search Console API</h2>
-                    <p class="text-white-50 small mb-0">استخراج خودکار روزانه کلمات کلیدی، ایمپرشن‌ها و کلیک‌های واقعی کاربران بدون نیاز به فیلتر دستی در کنسول.</p>
+                    {% if gsc_data.has_real_data %}
+                        <span class="badge badge-solid-emerald px-3 py-2">
+                            <i class="fas fa-check-double me-1"></i>دیتای واقعی کنسول فعال است
+                        </span>
+                    {% elif gsc_data.is_connected %}
+                        <span class="badge badge-solid-emerald px-3 py-2">
+                            <i class="fas fa-link me-1"></i>حساب گوگل API متصل است
+                        </span>
+                    {% else %}
+                        <span class="badge badge-solid-amber px-3 py-2">
+                            <i class="fas fa-circle-info me-1"></i>آماده دریافت خروجی کنسول گوگل
+                        </span>
+                    {% endif %}
                 </div>
             </div>
-            <div>
-                {% if gsc_data.is_connected %}
-                    <span class="badge badge-solid-emerald px-3 py-2"><i class="fas fa-link me-1"></i>حساب گوگل متصل است</span>
-                {% else %}
-                    <span class="badge badge-solid-amber px-3 py-2"><i class="fas fa-circle-info me-1"></i>حالت دمو هوشمند (آماده اتصال Service Account)</span>
-                {% endif %}
+
+            <!-- Upload Real Data Row -->
+            <div class="row g-3 pt-3 border-top" style="border-color: var(--border-subtle) !important;">
+                <!-- Option 1: Import GSC Export ZIP / CSV -->
+                <div class="col-lg-6">
+                    <div class="p-3 rounded-3" style="background-color: #0b111f; border: 1.5px dashed #2f456e;">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="fw-bold text-white small"><i class="fas fa-file-arrow-up text-info me-2"></i>روش اول: ورود خروجی سرچ کنسول (ZIP یا Queries.csv)</span>
+                            <span class="badge badge-solid-emerald small">پیشنهادی و فوری</span>
+                        </div>
+                        <p class="text-white-50 small mb-2" style="font-size: 0.8rem;">در پنل سرچ کنسول روی دکمه Export کلیک کرده و فایل دانلود شده (ZIP یا Queries.csv) را اینجا قرار دهید.</p>
+                        
+                        <form action="/api/gsc/import-csv" method="POST" enctype="multipart/form-data" class="d-flex gap-2">
+                            <input type="hidden" name="site_id" value="{{ selected_site_id }}">
+                            <input type="file" name="file" accept=".zip,.csv" class="form-control form-control-sm" required>
+                            <button type="submit" class="btn btn-emerald btn-sm text-nowrap">
+                                <i class="fas fa-upload me-1"></i>بارگذاری
+                            </button>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Option 2: Upload Google Cloud Service Account JSON -->
+                <div class="col-lg-6">
+                    <div class="p-3 rounded-3" style="background-color: #0b111f; border: 1.5px dashed #2f456e;">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="fw-bold text-white small"><i class="fas fa-key text-warning me-2"></i>روش دوم: کلید اختصاصی Google Cloud (service_account.json)</span>
+                            <span class="badge badge-solid-cyan small">همگام‌سازی خودکار</span>
+                        </div>
+                        <p class="text-white-50 small mb-2" style="font-size: 0.8rem;">فایل کلید JSON حساب سرویس گوگل را جهت اتصال زنده API آپلود نمایید.</p>
+                        
+                        <form action="/api/gsc/upload-credentials" method="POST" enctype="multipart/form-data" class="d-flex gap-2">
+                            <input type="hidden" name="site_id" value="{{ selected_site_id }}">
+                            <input type="file" name="credentials_file" accept=".json" class="form-control form-control-sm" required>
+                            <button type="submit" class="btn btn-cyan btn-sm text-nowrap">
+                                <i class="fas fa-plug me-1"></i>اتصال کلید
+                            </button>
+                        </form>
+                    </div>
+                </div>
             </div>
+
+            {% if just_imported %}
+            <div class="alert alert-success bg-success bg-opacity-10 border border-success text-success p-3 rounded-3 mt-3 mb-0">
+                <i class="fas fa-check-circle me-1"></i>فایل خروجی سرچ کنسول با موفقیت پردازش شد و آمار واقعی کلمات کلیدی، ایمپرشن‌ها و کلیک‌ها ثبت گردید!
+            </div>
+            {% endif %}
         </div>
     </div>
 
@@ -39,7 +96,7 @@
         <div class="stat-card">
             <span class="text-white-50 small">ایمپرشن‌ها (Impressions)</span>
             <h2 class="h3 fw-bold text-white mb-0 mt-1">{{ gsc_data.total_impressions }}</h2>
-            <small class="text-info"><i class="fas fa-eye me-1"></i>کل بازدیدهای سرپ</small>
+            <small class="text-info"><i class="fas fa-eye me-1"></i>کل دفعات نمایش در نتایج گوگل</small>
         </div>
     </div>
     <div class="col-xl-3 col-md-6">
@@ -53,7 +110,7 @@
         <div class="stat-card">
             <span class="text-white-50 small">میانگین رتبه (Average Position)</span>
             <h2 class="h3 fw-bold text-white mb-0 mt-1">#{{ gsc_data.avg_position }}</h2>
-            <small class="text-success"><i class="fas fa-chart-line me-1"></i>جایگاه در صفحه اول</small>
+            <small class="text-success"><i class="fas fa-chart-line me-1"></i>جایگاه در صفحات گوگل</small>
         </div>
     </div>
 
@@ -84,7 +141,7 @@
             </div>
 
             <div class="alert alert-info py-2 small mb-0">
-                <i class="fas fa-info-circle me-1"></i>پک ۳تایی نقشه در بیش از ۵۰٪ جستجوهای «تعمیر تلویزیون در تبریز» اول نمایش داده می‌شود.
+                <i class="fas fa-info-circle me-1"></i>پک ۳تایی نقشه در بیش از ۵۰٪ جستجوهای محلی تبریز نمایش داده می‌شود و تماس مستقیم ایجاد می‌کند.
             </div>
         </div>
     </div>
@@ -92,12 +149,12 @@
     <!-- Top Queries Table -->
     <div class="col-lg-8">
         <div class="card card-custom p-4">
-            <div class="d-flex justify-content-between align-items-center mb-3">
+            <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
                 <div>
-                    <h2 class="h6 fw-bold text-white mb-1">کلمات کلیدی برتر از دیتای کنسول گوگل</h2>
-                    <span class="text-white-50 small">تفکیک کلیک‌ها و ایمپرشن‌های کلمات تبریز</span>
+                    <h2 class="h6 fw-bold text-white mb-1">کلمات کلیدی و کوئری‌ها از کنسول گوگل</h2>
+                    <span class="text-white-50 small">منبع داده: {{ gsc_data.data_source }}</span>
                 </div>
-                <span class="badge badge-solid-cyan">{{ gsc_data.top_queries|length }} عبارت برتر</span>
+                <span class="badge badge-solid-cyan">{{ gsc_data.top_queries|length }} عبارت بررسی شده</span>
             </div>
 
             <div class="table-responsive">
@@ -108,23 +165,30 @@
                             <th>کلیک‌ها</th>
                             <th>ایمپرشن</th>
                             <th>نرخ کلیک (CTR)</th>
-                            <th>جایگاه در گوگل</th>
+                            <th>جایگاه در صفحات گوگل</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for q in gsc_data.top_queries %}
                         <tr>
-                            <td class="fw-bold text-white">{{ q.query }}</td>
+                            <td class="fw-bold text-white">
+                                {{ q.query }}
+                                <a href="https://www.google.com/search?q={{ q.query }}" target="_blank" class="text-info ms-2" title="مشاهده جستجو در گوگل">
+                                    <i class="fas fa-arrow-up-right-from-square small"></i>
+                                </a>
+                            </td>
                             <td><span class="badge badge-solid-emerald">{{ q.clicks }} کلیک</span></td>
                             <td><span class="text-white-50">{{ q.impressions }}</span></td>
                             <td><span class="text-warning fw-bold">{{ q.ctr }}%</span></td>
                             <td>
                                 {% if q.position <= 3 %}
-                                    <span class="badge badge-solid-emerald">رتبه {{ q.position }} (تاپ ۳)</span>
+                                    <span class="badge badge-solid-emerald"><i class="fas fa-crown me-1"></i>تاپ ۳ (#{{ q.position }})</span>
                                 {% elif q.position <= 10 %}
-                                    <span class="badge badge-solid-cyan">صفحه ۱ (#{{ q.position }})</span>
+                                    <span class="badge badge-solid-emerald">صفحه ۱ (#{{ q.position }})</span>
+                                {% elif q.position <= 20 %}
+                                    <span class="badge badge-solid-cyan">صفحه ۲ (#{{ q.position }})</span>
                                 {% else %}
-                                    <span class="badge badge-solid-amber">#{{ q.position }}</span>
+                                    <span class="badge badge-solid-amber">صفحه ۳+ (#{{ q.position }})</span>
                                 {% endif %}
                             </td>
                         </tr>

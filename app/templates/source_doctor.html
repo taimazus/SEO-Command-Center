@@ -8,31 +8,67 @@
     <!-- Path Selector & Scanner Card -->
     <div class="col-12">
         <div class="card card-custom p-4">
-            <h2 class="h5 fw-bold text-white mb-2"><i class="fas fa-stethoscope text-warning me-2"></i>بازرسی هوشمند سورس‌کد محلی و عیب‌یابی سئو</h2>
-            <p class="text-white-50 small mb-3">آدرس پوشه پروژه را در کامپیوتر وارد کنید تا فایل‌های Web.config، مسترپیج‌ها، صفحات اصلی و تداخل‌های پوشه App_Code به صورت عمیق بررسی شوند.</p>
+            <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+                <div>
+                    <h2 class="h5 fw-bold text-white mb-1"><i class="fas fa-stethoscope text-warning me-2"></i>بازرسی هوشمند سورس‌کد محلی و عیب‌یابی سئو</h2>
+                    <p class="text-white-50 small mb-0">مسیر سورس‌کد هر پروژه به تفکیک ذخیره می‌شود و فایل‌های Web.config، ریدایرکت‌های ۳۰۱، تداخل‌های App_Code و پکیج انتشار بررسی می‌گردند.</p>
+                </div>
+                {% if current_site %}
+                <span class="badge badge-solid-cyan px-3 py-2">
+                    <i class="fas fa-globe me-1"></i>پروژه جاری: {{ current_site.name }}
+                </span>
+                {% endif %}
+            </div>
 
-            <form action="/source-doctor" method="GET" class="row g-3 align-items-center">
-                <div class="col-lg-8">
-                    <label class="form-label small fw-bold text-white">آدرس کامل پوشه پروژه روی سیستم *</label>
+            <form id="doctorForm" action="/source-doctor" method="GET" class="row g-3 align-items-end">
+                <!-- Select Project -->
+                <div class="col-lg-4 col-md-5">
+                    <label class="form-label small fw-bold text-white">انتخاب پروژه / سایت:</label>
+                    <select name="site_id" id="doctorSiteSelect" class="form-select font-monospace" onchange="onSiteSelectChange(this)">
+                        {% for s in all_sites %}
+                        <option value="{{ s.id }}" data-path="{{ s.project_path or '' }}" {% if selected_site_id == s.id %}selected{% endif %}>
+                            {{ s.name }} ({{ s.domain }})
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Project Path Input -->
+                <div class="col-lg-5 col-md-7">
+                    <label class="form-label small fw-bold text-white">آدرس کامل پوشه پروژه روی هارد دیسک سیستم *</label>
                     <div class="input-group">
                         <span class="input-group-text bg-dark border-secondary text-white-50"><i class="fas fa-folder-open"></i></span>
-                        <input type="text" name="project_path" class="form-control font-monospace" placeholder="F:\Projects\TabrizTv" value="{{ project_path }}" required>
+                        <input type="text" name="project_path" id="projectPathInput" class="form-control font-monospace" placeholder="F:\Projects\TabrizTv" value="{{ project_path }}" required>
                     </div>
                 </div>
-                <div class="col-lg-4 d-flex gap-2 align-items-end mt-4">
+
+                <!-- Action Buttons -->
+                <div class="col-lg-3 col-md-12 d-flex gap-2">
                     <button type="submit" class="btn btn-emerald flex-grow-1">
-                        <i class="fas fa-magnifying-glass me-1"></i>اسکن عمیق سورس‌کد
+                        <i class="fas fa-magnifying-glass me-1"></i>اسکن سورس
+                    </button>
+                    <button type="button" class="btn btn-outline-contrast-cyan" onclick="saveCurrentProjectPath()" title="ذخیره این مسیر برای وب‌سایت انتخابی">
+                        <i class="fas fa-save me-1"></i>ذخیره مسیر
                     </button>
                     {% if scan_result and scan_result.success %}
-                    <form action="/api/source-doctor/auto-fix" method="POST" class="d-inline">
-                        <input type="hidden" name="project_path" value="{{ project_path }}">
-                        <button type="submit" class="btn btn-cyan" onclick="return confirm('اصلاحات خودکار با ایجاد نسخه پشتیبان اعمال شود؟');">
-                            <i class="fas fa-magic me-1"></i>رفع خودکار
-                        </button>
-                    </form>
+                    <button type="button" class="btn btn-cyan" onclick="document.getElementById('autoFixForm').submit()" title="رفع خودکار ایرادات با بکاپ">
+                        <i class="fas fa-magic me-1"></i>رفع خودکار
+                    </button>
                     {% endif %}
                 </div>
             </form>
+
+            <!-- Hidden Form for Updating Project Path in DB -->
+            <form id="savePathForm" method="POST" style="display: none;">
+                <input type="hidden" name="project_path" id="hiddenSavePath">
+            </form>
+
+            <!-- Hidden Form for Auto-fix -->
+            {% if scan_result and scan_result.success %}
+            <form id="autoFixForm" action="/api/source-doctor/auto-fix" method="POST" style="display: none;">
+                <input type="hidden" name="project_path" value="{{ project_path }}">
+            </form>
+            {% endif %}
         </div>
     </div>
 
@@ -41,7 +77,7 @@
         <!-- Health Score & Framework Overview -->
         <div class="col-lg-4">
             <div class="card card-custom p-4 text-center">
-                <span class="text-white-50 small fw-bold text-uppercase">امتیاز سلامت کدنویسی سئو</span>
+                <span class="text-white-50 small fw-bold text-uppercase">امتیاز سلامت سورس‌کد و سئو</span>
                 <div class="my-3">
                     <span class="display-3 fw-bold {% if scan_result.score >= 80 %}text-success{% elif scan_result.score >= 50 %}text-warning{% else %}text-danger{% endif %}">
                         {{ scan_result.score }}
@@ -64,8 +100,8 @@
                         </strong>
                     </div>
                     <div class="d-flex justify-content-between mb-2">
-                        <span class="text-white-50 small">مسیر پروژه:</span>
-                        <span class="font-monospace text-truncate text-info small" style="max-width: 170px;">
+                        <span class="text-white-50 small">مسیر اسکن شده:</span>
+                        <span class="font-monospace text-truncate text-info small" style="max-width: 170px;" title="{{ scan_result.project_path }}">
                             {{ scan_result.project_path }}
                         </span>
                     </div>
@@ -75,7 +111,7 @@
                     <form action="/api/source-doctor/export-zip" method="POST">
                         <input type="hidden" name="project_path" value="{{ project_path }}">
                         <button type="submit" class="btn btn-warning w-100 fw-bold">
-                            <i class="fas fa-file-zipper me-1"></i>تولید فایل ZIP آماده پابلیش
+                            <i class="fas fa-file-zipper me-1"></i>دانلود پکیج ZIP آماده انتشار (Publish)
                         </button>
                     </form>
                 </div>
@@ -124,7 +160,7 @@
         {% if manifest_data and manifest_data.manifest %}
         <div class="col-12 mt-4">
             <div class="card card-custom p-4">
-                <div class="d-flex justify-content-between align-items-center mb-3">
+                <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
                     <div>
                         <h2 class="h5 fw-bold text-white mb-1"><i class="fas fa-cloud-arrow-up text-primary me-2"></i>راهنمای دقیق آپلود فایل‌ها روی هاست (Deployment Manifest)</h2>
                         <span class="text-white-50 small">فایل‌های تغییر یافته اخیر و مسیرهای دقیق آپلود در هاست پلسک / سی‌پنل</span>
@@ -181,4 +217,36 @@
         {% endif %}
     {% endif %}
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function onSiteSelectChange(selectElem) {
+        const selectedOption = selectElem.options[selectElem.selectedIndex];
+        const savedPath = selectedOption.dataset.path;
+        if (savedPath) {
+            document.getElementById('projectPathInput').value = savedPath;
+        }
+        // Sync active site cookie
+        document.cookie = "active_site_id=" + selectElem.value + "; path=/; max-age=31536000; SameSite=Lax";
+        // Submit form to reload scan
+        document.getElementById('doctorForm').submit();
+    }
+
+    function saveCurrentProjectPath() {
+        const siteSelect = document.getElementById('doctorSiteSelect');
+        const siteId = siteSelect.value;
+        const currentPath = document.getElementById('projectPathInput').value.trim();
+
+        if (!currentPath) {
+            alert('لطفاً آدرس پوشه پروژه را وارد کنید.');
+            return;
+        }
+
+        const saveForm = document.getElementById('savePathForm');
+        saveForm.action = `/api/sites/${siteId}/update-path`;
+        document.getElementById('hiddenSavePath').value = currentPath;
+        saveForm.submit();
+    }
+</script>
 {% endblock %}

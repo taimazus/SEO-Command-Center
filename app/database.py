@@ -26,6 +26,7 @@ def init_db():
         city TEXT DEFAULT 'تبریز',
         sitemap_url TEXT,
         gsc_site_url TEXT,
+        project_path TEXT,
         auto_index BOOLEAN DEFAULT 1,
         is_active BOOLEAN DEFAULT 1,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -93,21 +94,38 @@ def init_db():
         issues_json TEXT,
         audited_at DATETIME DEFAULT CURRENT_TIMESTAMP
     );
+
+    CREATE TABLE IF NOT EXISTS gsc_queries (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        site_id INTEGER NOT NULL REFERENCES sites(id) ON DELETE CASCADE,
+        query TEXT NOT NULL,
+        clicks INTEGER DEFAULT 0,
+        impressions INTEGER DEFAULT 0,
+        ctr REAL DEFAULT 0.0,
+        position REAL DEFAULT 0.0,
+        fetched_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
     """)
 
-    # Seed initial data for Tabriz TV if empty
+    # Migration: check if project_path column exists
+    columns = [col["name"] for col in cursor.execute("PRAGMA table_info(sites)").fetchall()]
+    if "project_path" not in columns:
+        cursor.execute("ALTER TABLE sites ADD COLUMN project_path TEXT;")
+
+    # Seed or update initial data for Tabriz TV
     cursor.execute("SELECT COUNT(*) AS count FROM sites")
     if cursor.fetchone()["count"] == 0:
         cursor.execute("""
-            INSERT INTO sites (name, domain, category, city, sitemap_url, gsc_site_url, auto_index, is_active)
-            VALUES (?, ?, ?, ?, ?, ?, 1, 1)
+            INSERT INTO sites (name, domain, category, city, sitemap_url, gsc_site_url, project_path, auto_index, is_active)
+            VALUES (?, ?, ?, ?, ?, ?, ?, 1, 1)
         """, (
             "مرکز تخصصی تعمیر تلویزیون تبریز (تبریز تی‌وی)",
             "tbztvrepair.ir",
             "تعمیرات لوازم خانگی و صوتی تصویری",
             "تبریز",
             "https://tbztvrepair.ir/sitemap.xml",
-            "sc-domain:tbztvrepair.ir"
+            "sc-domain:tbztvrepair.ir",
+            r"F:\Projects\TabrizTv"
         ))
         site_id = cursor.lastrowid
 
@@ -130,10 +148,13 @@ def init_db():
                 INSERT INTO keywords (site_id, keyword, target_url, current_position, best_position, previous_position, last_checked_at)
                 VALUES (?, ?, ?, 0, 0, 0, ?)
             """, (site_id, kw, url, now_str))
+    else:
+        # Ensure site 1 has project_path set
+        cursor.execute("UPDATE sites SET project_path = ? WHERE id = 1 AND (project_path IS NULL OR project_path = '')", (r"F:\Projects\TabrizTv",))
 
     conn.commit()
     conn.close()
 
 if __name__ == "__main__":
     init_db()
-    print("Database initialized successfully at:", DB_PATH)
+    print("Database updated and initialized successfully.")

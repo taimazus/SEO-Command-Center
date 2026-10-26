@@ -9,16 +9,15 @@
     <div class="col-12">
         <div class="card card-custom p-3 d-flex flex-row justify-content-between align-items-center flex-wrap gap-3">
             <form action="/rank-tracker" method="GET" class="d-flex align-items-center gap-2 flex-wrap">
-                <label class="form-label mb-0 small text-white">فیلتر بر اساس وب‌سایت:</label>
+                <label class="form-label mb-0 small text-white">انتخاب وب‌سایت برای پایش رتبه‌ها:</label>
                 <select name="site_id" class="form-select form-select-sm" onchange="this.form.submit()" style="width: auto;">
-                    <option value="">همه وب‌سایت‌ها</option>
-                    {% for s in sites %}
+                    {% for s in all_sites %}
                     <option value="{{ s.id }}" {% if selected_site_id == s.id %}selected{% endif %}>{{ s.name }} ({{ s.domain }})</option>
                     {% endfor %}
                 </select>
             </form>
 
-            <div>
+            <div class="d-flex gap-2">
                 <form action="/api/check-all-ranks" method="POST" class="d-inline">
                     {% if selected_site_id %}
                     <input type="hidden" name="site_id" value="{{ selected_site_id }}">
@@ -34,52 +33,105 @@
     <!-- Chart -->
     <div class="col-12">
         <div class="card card-custom p-4">
-            <h2 class="h5 fw-bold text-white mb-3"><i class="fas fa-chart-line text-info me-2"></i>توزیع رتبه‌بندی کلمات کلیدی</h2>
-            <div style="height: 260px;">
+            <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+                <h2 class="h5 fw-bold text-white mb-0"><i class="fas fa-chart-line text-info me-2"></i>توزیع رتبه‌بندی کلمات کلیدی در صفحات گوگل</h2>
+                <span class="text-white-50 small">کلیک روی هر ستون جدول زیر را فیلتر می‌کند</span>
+            </div>
+            <div style="height: 240px;">
                 <canvas id="rankChart"></canvas>
             </div>
         </div>
     </div>
 
-    <!-- Keywords Table -->
+    <!-- Keywords Table with Direct Page Filter Tabs -->
     <div class="col-12">
         <div class="card card-custom p-4">
-            <h2 class="h5 fw-bold text-white mb-3">جدول تفصیلی کلمات کلیدی و رتبه‌ها</h2>
+            <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
+                <div>
+                    <h2 class="h5 fw-bold text-white mb-1">کلمات کلیدی پایش شده و جایگاه در صفحات سرپ</h2>
+                    <span class="text-white-50 small">مشاهده تفکیک کلمات در صفحه ۱، صفحه ۲ و رتبه‌های پایین‌تر</span>
+                </div>
+
+                <!-- Instant Filter Buttons -->
+                <div class="d-flex gap-2 flex-wrap" id="serpFilterTabs">
+                    <button class="filter-tab-btn active" data-filter="all">
+                        همه کلمات ({{ keywords|length }})
+                    </button>
+                    <button class="filter-tab-btn" data-filter="page-1">
+                        🟢 صفحه ۱ گوگل ({{ chart_data.top_10 }})
+                    </button>
+                    <button class="filter-tab-btn" data-filter="page-2">
+                        🔵 صفحه ۲ گوگل ({{ chart_data.top_20 }})
+                    </button>
+                    <button class="filter-tab-btn" data-filter="page-3">
+                        🟡 صفحه ۳ به بعد ({{ chart_data.top_50 }})
+                    </button>
+                    <button class="filter-tab-btn" data-filter="beyond-50">
+                        ⚪ خارج از ۵۰ ({{ chart_data.beyond_50 }})
+                    </button>
+                </div>
+            </div>
+
             <div class="table-responsive">
-                <table class="table table-custom align-middle">
+                <table class="table table-custom align-middle" id="keywordsTable">
                     <thead>
                         <tr>
-                            <th>کلمه کلیدی</th>
+                            <th>کلمه کلیدی و لینک هدف</th>
                             <th>وب‌سایت</th>
-                            <th>رتبه فعلی در سرپ</th>
+                            <th>جایگاه دقیق در صفحات گوگل</th>
                             <th>رتبه قبلی</th>
                             <th>بهترین رتبه</th>
-                            <th>تغییر موقعیت</th>
-                            <th>آخرین بررسی</th>
+                            <th>تغییر وضعیت</th>
+                            <th>آخرین استعلام</th>
                             <th>عملیات</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for kw in keywords %}
-                        <tr>
-                            <td>
-                                <div class="fw-bold text-white">{{ kw.keyword }}</div>
-                                <small class="text-white-50 font-monospace">{{ kw.target_url }}</small>
+                        {% set pos = kw.current_position or 0 %}
+                        {% if pos > 0 and pos <= 10 %}
+                            {% set group = 'page-1' %}
+                        {% elif pos > 10 and pos <= 20 %}
+                            {% set group = 'page-2' %}
+                        {% elif pos > 20 and pos <= 50 %}
+                            {% set group = 'page-3' %}
+                        {% else %}
+                            {% set group = 'beyond-50' %}
+                        {% endif %}
+                        <tr data-rank-group="{{ group }}">
+                            <td style="min-width: 250px;">
+                                <div class="d-flex align-items-center gap-2">
+                                    <span class="keyword-title">{{ kw.keyword }}</span>
+                                    <a href="https://www.google.com/search?q={{ kw.keyword }}" target="_blank" class="text-info" title="مشاهده زنده جستجو در گوگل">
+                                        <i class="fas fa-arrow-up-right-from-square small"></i>
+                                    </a>
+                                </div>
+                                <div class="keyword-url text-truncate" style="max-width: 320px;" title="{{ kw.target_url }}">
+                                    <i class="fas fa-link me-1 text-info"></i>{{ kw.target_url or 'صفحه اصلی سایت' }}
+                                </div>
                             </td>
                             <td><span class="badge bg-secondary text-white">{{ kw.domain }}</span></td>
                             <td>
-                                {% if kw.current_position > 0 and kw.current_position <= 10 %}
-                                    <span class="badge badge-solid-emerald">صفحه اول (#{{ kw.current_position }})</span>
-                                {% elif kw.current_position > 10 and kw.current_position <= 20 %}
-                                    <span class="badge badge-solid-cyan">صفحه دوم (#{{ kw.current_position }})</span>
-                                {% elif kw.current_position > 20 %}
-                                    <span class="badge badge-solid-amber">#{{ kw.current_position }}</span>
+                                {% if pos > 0 and pos <= 10 %}
+                                    <span class="badge badge-solid-emerald px-3 py-2">
+                                        <i class="fas fa-crown me-1"></i>صفحه ۱ گوگل (رتبه {{ pos }})
+                                    </span>
+                                {% elif pos > 10 and pos <= 20 %}
+                                    <span class="badge badge-solid-cyan px-3 py-2">
+                                        <i class="fas fa-file-lines me-1"></i>صفحه ۲ گوگل (رتبه {{ pos }})
+                                    </span>
+                                {% elif pos > 20 and pos <= 50 %}
+                                    <span class="badge badge-solid-amber px-3 py-2">
+                                        <i class="fas fa-arrow-down me-1"></i>صفحه ۳ گوگل (رتبه {{ pos }})
+                                    </span>
                                 {% else %}
-                                    <span class="badge bg-dark border text-white-50">خارج از ۱۰۰</span>
+                                    <span class="badge bg-dark border text-white-50 px-3 py-2">
+                                        <i class="fas fa-magnifying-glass-chart me-1"></i>خارج از ۵۰ ({{ pos if pos > 0 else 'نامشخص' }})
+                                    </span>
                                 {% endif %}
                             </td>
-                            <td><span class="text-white-50">#{{ kw.previous_position or '-' }}</span></td>
-                            <td><span class="text-info fw-bold">#{{ kw.best_position or '-' }}</span></td>
+                            <td><span class="text-white-50 font-monospace">#{{ kw.previous_position or '-' }}</span></td>
+                            <td><span class="text-info fw-bold font-monospace">#{{ kw.best_position or '-' }}</span></td>
                             <td>
                                 {% set change = (kw.previous_position - kw.current_position) if (kw.previous_position > 0 and kw.current_position > 0) else 0 %}
                                 {% if change > 0 %}
@@ -93,7 +145,7 @@
                             <td><small class="text-white-50">{{ kw.last_checked_at or 'به‌تازگی' }}</small></td>
                             <td>
                                 <form action="/api/keywords/{{ kw.id }}/check-rank" method="POST" class="d-inline">
-                                    <button type="submit" class="btn btn-sm btn-outline-info" title="استعلام مجدد این کلمه">
+                                    <button type="submit" class="btn btn-sm btn-outline-contrast-light" title="استعلام مجدد این کلمه در گوگل">
                                         <i class="fas fa-rotate"></i>
                                     </button>
                                 </form>
@@ -110,12 +162,39 @@
 
 {% block extra_js %}
 <script>
+    // Interactive Table Filtering by SERP Page
+    const filterTabs = document.querySelectorAll('#serpFilterTabs .filter-tab-btn');
+    const tableRows = document.querySelectorAll('#keywordsTable tbody tr');
+
+    function applyFilter(filter) {
+        filterTabs.forEach(tab => {
+            if (tab.dataset.filter === filter) {
+                tab.classList.add('active');
+            } else {
+                tab.classList.remove('active');
+            }
+        });
+
+        tableRows.forEach(row => {
+            if (filter === 'all' || row.dataset.rankGroup === filter) {
+                row.style.display = '';
+            } else {
+                row.style.display = 'none';
+            }
+        });
+    }
+
+    filterTabs.forEach(tab => {
+        tab.addEventListener('click', () => applyFilter(tab.dataset.filter));
+    });
+
+    // Chart.js Setup
     const ctx = document.getElementById('rankChart');
     if (ctx) {
-        new Chart(ctx, {
+        const rankChart = new Chart(ctx, {
             type: 'bar',
             data: {
-                labels: ['صفحه اول (۱-۱۰)', 'صفحه دوم (۱۱-۲۰)', 'صفحه سوم به بعد (۲۱-۵۰)', 'نیاز به بهینه‌سازی (>۵۰)'],
+                labels: ['صفحه ۱ گوگل (۱-۱۰)', 'صفحه ۲ گوگل (۱۱-۲۰)', 'صفحه ۳ به بعد (۲۱-۵۰)', 'خارج از ۵۰ (>۵۰)'],
                 datasets: [{
                     label: 'تعداد کلمات کلیدی',
                     data: [{{ chart_data.top_10 }}, {{ chart_data.top_20 }}, {{ chart_data.top_50 }}, {{ chart_data.beyond_50 }}],
@@ -126,6 +205,13 @@
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
+                onClick: (event, elements) => {
+                    if (elements.length > 0) {
+                        const index = elements[0].index;
+                        const filterMap = ['page-1', 'page-2', 'page-3', 'beyond-50'];
+                        applyFilter(filterMap[index]);
+                    }
+                },
                 plugins: {
                     legend: { display: false }
                 },
