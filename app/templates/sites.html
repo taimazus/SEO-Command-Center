@@ -8,31 +8,33 @@
     <!-- Add New Website Form -->
     <div class="col-lg-4">
         <div class="card card-custom p-4">
-            <h2 class="h5 fw-bold mb-3"><i class="fas fa-plus-circle text-primary me-2"></i>افزودن وب‌سایت جدید</h2>
-            <p class="text-muted small">مشخصات سایت مشتری یا پروژه شخصی را وارد کنید تا به سیستم رصد و اتوماسیون اضافه شود.</p>
+            <h2 class="h5 fw-bold text-white mb-2"><i class="fas fa-plus-circle text-info me-2"></i>افزودن وب‌سایت جدید</h2>
+            <p class="mb-3" style="color: #cbd5e1 !important; font-size: 0.92rem; line-height: 1.6;">
+                مشخصات سایت مشتری یا پروژه شخصی را وارد کنید تا به سیستم رصد و اتوماسیون اضافه شود.
+            </p>
 
             <form action="/api/sites" method="POST">
                 <div class="mb-3">
-                    <label class="form-label small fw-bold">نام وب‌سایت یا برند *</label>
+                    <label class="form-label">نام وب‌سایت یا برند *</label>
                     <input type="text" name="name" class="form-control" placeholder="مثال: مرکز تعمیرات تبریز تی‌وی" required>
                 </div>
                 <div class="mb-3">
-                    <label class="form-label small fw-bold">دامنه اصلی (بدون https) *</label>
-                    <input type="text" name="domain" class="form-control" placeholder="مثال: tbztvrepair.ir" required>
+                    <label class="form-label">دامنه اصلی (بدون https) *</label>
+                    <input type="text" name="domain" class="form-control text-start font-monospace" placeholder="مثال: tbztvrepair.ir" required>
                 </div>
                 <div class="mb-3">
-                    <label class="form-label small fw-bold">شهر / منطقه هدف سئو</label>
+                    <label class="form-label">شهر / منطقه هدف سئو</label>
                     <input type="text" name="city" class="form-control" placeholder="مثال: تبریز، تهران، سراسر کشور" value="تبریز">
                 </div>
                 <div class="mb-3">
-                    <label class="form-label small fw-bold">دسته‌بندی موضوعی</label>
+                    <label class="form-label">دسته‌بندی موضوعی</label>
                     <input type="text" name="category" class="form-control" placeholder="مثال: تعمیرات، فروشگاهی، شرکتی" value="تعمیرات و خدمات">
                 </div>
                 <div class="mb-3">
-                    <label class="form-label small fw-bold">آدرس نقشه سایت (Sitemap URL)</label>
-                    <input type="url" name="sitemap_url" class="form-control" placeholder="https://example.com/sitemap.xml">
+                    <label class="form-label">آدرس نقشه سایت (Sitemap URL)</label>
+                    <input type="url" name="sitemap_url" class="form-control text-start font-monospace" placeholder="https://example.com/sitemap.xml">
                 </div>
-                <button type="submit" class="btn btn-primary-custom w-100">
+                <button type="submit" class="btn btn-emerald w-100 mt-2">
                     <i class="fas fa-save me-1"></i>ثبت و آغاز مانیتورینگ
                 </button>
             </form>
@@ -43,12 +45,12 @@
     <div class="col-lg-8">
         <div class="card card-custom p-4">
             <div class="d-flex justify-content-between align-items-center mb-3">
-                <h2 class="h5 fw-bold mb-0">سایت‌های فعال در سیستم</h2>
-                <span class="badge bg-primary bg-opacity-25 text-primary">{{ sites|length }} دامنه</span>
+                <h2 class="h5 fw-bold text-white mb-0">سایت‌های فعال در سیستم</h2>
+                <span class="badge badge-solid-cyan">{{ sites|length }} دامنه فعال</span>
             </div>
 
             <div class="table-responsive">
-                <table class="table table-dark-custom align-middle">
+                <table class="table table-custom align-middle">
                     <thead>
                         <tr>
                             <th>نام سایت</th>
@@ -61,15 +63,15 @@
                     <tbody>
                         {% for site in sites %}
                         <tr>
-                            <td class="fw-bold">{{ site.name }}</td>
+                            <td class="fw-bold text-white">{{ site.name }}</td>
                             <td>
-                                <a href="https://{{ site.domain }}" target="_blank" class="text-info text-decoration-none">
-                                    {{ site.domain }}
+                                <a href="https://{{ site.domain }}" target="_blank" class="text-info fw-bold text-decoration-none font-monospace">
+                                    {{ site.domain }} <i class="fas fa-arrow-up-right-from-square small"></i>
                                 </a>
                             </td>
-                            <td><span class="badge bg-secondary">{{ site.city }}</span></td>
+                            <td><span class="badge bg-secondary text-white">{{ site.city }}</span></td>
                             <td>
-                                <span class="badge bg-info bg-opacity-25 text-info">{{ site.keyword_count }} کلمه</span>
+                                <span class="badge badge-solid-emerald">{{ site.keyword_count }} کلمه</span>
                             </td>
                             <td>
                                 <div class="d-flex gap-1">

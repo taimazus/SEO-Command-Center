@@ -8,12 +8,14 @@
     <!-- Generator Form -->
     <div class="col-lg-5">
         <div class="card card-custom p-4">
-            <h2 class="h5 fw-bold mb-3"><i class="fas fa-wand-magic-sparkles text-primary me-2"></i>تولید مقاله با هوش مصنوعی</h2>
-            <p class="text-muted small">محتوای سئو شده بر اساس محله‌های شهری، ایرادات شایع، و کدهای اسکیما استاندارد گوگل (FAQ Schema) به صورت خودکار ایجاد می‌شود.</p>
+            <h2 class="h5 fw-bold text-white mb-2"><i class="fas fa-wand-magic-sparkles text-info me-2"></i>تولید مقاله با هوش مصنوعی</h2>
+            <p class="mb-3" style="color: #cbd5e1 !important; font-size: 0.92rem; line-height: 1.6;">
+                محتوای سئو شده بر اساس محله‌های شهری، ایرادات شایع، و کدهای اسکیما استاندارد گوگل (FAQ Schema) به صورت خودکار ایجاد می‌شود.
+            </p>
 
             <form action="/api/generate-content" method="POST">
                 <div class="mb-3">
-                    <label class="form-label small fw-bold">انتخاب وب‌سایت مقصد *</label>
+                    <label class="form-label">انتخاب وب‌سایت مقصد *</label>
                     <select name="site_id" class="form-select" required>
                         {% for s in sites %}
                         <option value="{{ s.id }}" {% if selected_site_id == s.id %}selected{% endif %}>{{ s.name }} ({{ s.domain }})</option>
@@ -21,21 +23,21 @@
                     </select>
                 </div>
                 <div class="mb-3">
-                    <label class="form-label small fw-bold">موضوع تخصصی مقاله *</label>
+                    <label class="form-label">موضوع تخصصی مقاله *</label>
                     <select name="topic" class="form-select" required>
                         <option value="تعمیر بک لایت">تعمیر و تعویض بک‌لایت (قطع تصویر و تاریکی)</option>
                         <option value="مین برد و پاور">مشکلات مین‌برد و پاور (روشن نشدن و ریست)</option>
                     </select>
                 </div>
                 <div class="mb-3">
-                    <label class="form-label small fw-bold">برند هدف *</label>
+                    <label class="form-label">برند هدف *</label>
                     <input type="text" name="brand" class="form-control" placeholder="سامسونگ، ال‌جی، سونی، اسنوا..." value="سامسونگ" required>
                 </div>
                 <div class="mb-3">
-                    <label class="form-label small fw-bold">شهر / منطقه هدف *</label>
+                    <label class="form-label">شهر / منطقه هدف *</label>
                     <input type="text" name="city" class="form-control" placeholder="تبریز، تهران، اصفهان..." value="تبریز" required>
                 </div>
-                <button type="submit" class="btn btn-primary-custom w-100">
+                <button type="submit" class="btn btn-emerald w-100 mt-2">
                     <i class="fas fa-bolt me-1"></i>تولید آنی مقاله و ذخیره در دیتابیس
                 </button>
             </form>
@@ -45,27 +47,27 @@
     <!-- Generated Articles Preview / List -->
     <div class="col-lg-7">
         <div class="card card-custom p-4">
-            <h2 class="h5 fw-bold mb-3">مقالات تولید شده در سیستم ({{ articles|length }})</h2>
+            <h2 class="h5 fw-bold text-white mb-3">مقالات تولید شده در سیستم ({{ articles|length }})</h2>
             
             {% if articles %}
                 <div class="list-group list-group-flush">
                     {% for art in articles %}
-                    <div class="list-group-item bg-transparent text-white border-secondary p-3">
+                    <div class="list-group-item bg-transparent text-white border-secondary p-3 mb-2 rounded-3 border" style="background-color: #0b101c !important;">
                         <div class="d-flex justify-content-between align-items-start mb-2">
                             <h3 class="h6 fw-bold text-info mb-0">{{ art.title }}</h3>
-                            <span class="badge bg-success bg-opacity-25 text-success">منتشر شده</span>
+                            <span class="badge badge-solid-emerald">منتشر شده</span>
                         </div>
-                        <p class="text-muted small mb-2">{{ art.summary }}</p>
+                        <p class="text-white-50 small mb-2">{{ art.summary }}</p>
                         <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
-                            <span class="badge bg-dark border text-muted small"><i class="fas fa-tags me-1"></i>{{ art.category }}</span>
-                            <small class="text-muted">{{ art.published_at }}</small>
+                            <span class="badge bg-dark border text-white-50 small"><i class="fas fa-tags me-1"></i>{{ art.category }}</span>
+                            <small class="text-white-50">{{ art.published_at }}</small>
                         </div>
                     </div>
                     {% endfor %}
                 </div>
             {% else %}
-                <div class="text-center py-5 text-muted">
-                    <i class="fas fa-newspaper fs-1 mb-2"></i>
+                <div class="text-center py-5 text-white-50">
+                    <i class="fas fa-newspaper fs-1 mb-2 text-info"></i>
                     <p>هنوز مقاله‌ای تولید نشده است. از فرم سمت راست اولین مقاله را ایجاد کنید.</p>
                 </div>
             {% endif %}
