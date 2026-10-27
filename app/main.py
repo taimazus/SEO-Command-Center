@@ -362,7 +362,7 @@ def source_doctor_page(
     )
 
 @app.get("/gsc-integration", response_class=HTMLResponse)
-def gsc_integration_page(request: Request, site_id: Optional[int] = None, imported: Optional[int] = None, connected: Optional[int] = None, tested: Optional[int] = None):
+def gsc_integration_page(request: Request, site_id: Optional[int] = None, imported: Optional[int] = None, connected: Optional[int] = None, tested: Optional[int] = None, sitemap_msg: Optional[str] = None, sitemap_success: Optional[int] = None):
     all_sites, current_site, active_id, unread_alerts_count = get_site_context(request, site_id)
     gsc_service = GSCService()
     target_domain = current_site["domain"] if current_site else ""
@@ -382,6 +382,8 @@ def gsc_integration_page(request: Request, site_id: Optional[int] = None, import
             "just_imported": bool(imported),
             "just_connected": bool(connected),
             "just_tested": bool(tested),
+            "sitemap_msg": sitemap_msg,
+            "sitemap_success": bool(sitemap_success),
             "unread_alerts_count": unread_alerts_count
         }
     )
@@ -625,6 +627,15 @@ def test_gsc_connection_action(site_id: int = Form(...)):
     if site:
         gsc_service.fetch_live_api_data(site_id, site["domain"])
     return RedirectResponse(f"/gsc-integration?site_id={site_id}&tested=1", status_code=303)
+
+@app.post("/api/gsc/submit-sitemap")
+def submit_gsc_sitemap_action(site_id: int = Form(...), sitemap_url: str = Form(None)):
+    gsc_service = GSCService()
+    res = gsc_service.submit_sitemap(site_id, sitemap_url)
+    import urllib.parse
+    msg = urllib.parse.quote(res["message"])
+    flag = 1 if res["success"] else 0
+    return RedirectResponse(f"/gsc-integration?site_id={site_id}&sitemap_msg={msg}&sitemap_success={flag}", status_code=303)
 
 @app.post("/api/source-doctor/auto-fix")
 def source_doctor_autofix_action(project_path: str = Form(...)):

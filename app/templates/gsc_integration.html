@@ -82,6 +82,13 @@
             </div>
             {% endif %}
 
+            {% if sitemap_msg %}
+            <div class="alert {% if sitemap_success %}alert-success bg-success border-success text-success{% else %}alert-danger bg-danger border-danger text-danger{% endif %} bg-opacity-10 border p-3 rounded-3 mt-3 mb-0">
+                <i class="fas {% if sitemap_success %}fa-circle-check{% else %}fa-circle-exclamation{% endif %} me-1"></i>
+                {{ sitemap_msg }}
+            </div>
+            {% endif %}
+
             <!-- Service Account Live Status Card -->
             {% if connection_test and connection_test.is_configured %}
             <div class="mt-3 p-3 rounded-3 border {% if connection_test.has_permission %}border-success bg-success bg-opacity-10{% else %}border-warning bg-warning bg-opacity-10{% endif %}">
@@ -93,12 +100,20 @@
                             {{ 'متصل و دارای دسترسی کامل' if connection_test.has_permission else 'نیاز به افزودن ایمیل در سرچ کنسول' }}
                         </span>
                     </div>
-                    <form action="/api/gsc/test-connection" method="POST" class="d-inline">
-                        <input type="hidden" name="site_id" value="{{ selected_site_id }}">
-                        <button type="submit" class="btn btn-sm btn-outline-info">
-                            <i class="fas fa-rotate me-1"></i>تست اتصال و همگام‌سازی زنده API
-                        </button>
-                    </form>
+                    <div class="d-flex gap-2">
+                        <form action="/api/gsc/test-connection" method="POST" class="d-inline">
+                            <input type="hidden" name="site_id" value="{{ selected_site_id }}">
+                            <button type="submit" class="btn btn-sm btn-outline-info">
+                                <i class="fas fa-rotate me-1"></i>همگام‌سازی زنده API
+                            </button>
+                        </form>
+                        <form action="/api/gsc/submit-sitemap" method="POST" class="d-inline">
+                            <input type="hidden" name="site_id" value="{{ selected_site_id }}">
+                            <button type="submit" class="btn btn-sm btn-emerald" onclick="return confirm('آیا می‌خواهید نقشه سایت (شامل تمام صفحات) مستقیماً به سرچ کنسول گوگل ارسال شود؟');">
+                                <i class="fas fa-sitemap me-1"></i>ارسال نقشه به گوگل (Submit Sitemap)
+                            </button>
+                        </form>
+                    </div>
                 </div>
 
                 <div class="p-2 rounded bg-black bg-opacity-50 font-monospace small mb-2 d-flex justify-content-between align-items-center flex-wrap gap-2">

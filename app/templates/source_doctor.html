@@ -226,7 +226,16 @@
                         <h2 class="h5 fw-bold text-white mb-1"><i class="fas fa-cloud-arrow-up text-primary me-2"></i>راهنمای دقیق آپلود فایل‌ها روی هاست (Deployment Manifest)</h2>
                         <span class="text-white-50 small">فایل‌های تغییر یافته اخیر و مسیرهای دقیق آپلود در هاست پلسک / سی‌پنل</span>
                     </div>
-                    <span class="badge badge-solid-emerald">{{ manifest_data.total_files }} فایل تغییریافته ({{ manifest_data.total_size_kb }} KB)</span>
+                    <div class="d-flex align-items-center gap-2 flex-wrap">
+                        <span class="badge badge-solid-emerald">{{ manifest_data.total_files }} فایل تغییریافته ({{ manifest_data.total_size_kb }} KB)</span>
+                        <form action="/api/source-doctor/deploy-ftp" method="POST" class="d-inline" onsubmit="return confirm('آیا از آپلود و جایگزینی فایل‌های تغییریافته روی هاست پلسک از طریق FTP اطمینان دارید؟');">
+                            <input type="hidden" name="project_path" value="{{ project_path }}">
+                            <input type="hidden" name="site_id" value="{{ selected_site_id }}">
+                            <button type="submit" class="btn btn-emerald btn-sm shadow-sm">
+                                <i class="fas fa-paper-plane me-1"></i>استقرار خودکار روی هاست (1-Click Deploy)
+                            </button>
+                        </form>
+                    </div>
                 </div>
 
                 <div class="table-responsive">
